@@ -1,0 +1,353 @@
+/* ============================================================================
+   deck.css · longtext-to-slides 舞台引擎
+   ----------------------------------------------------------------------------
+   设计理念（与"100vh + scroll-snap"流派显式区分）：
+
+   1. 每张 frame 是一个 1280×720 的固定逻辑舞台（16:9 设计基准）
+   2. 整体用 transform: scale(N) 自适应当前视口（fit-to-viewport）
+   3. 翻页：不是滚动，而是 [data-active="N"] 状态切换 + opacity/transform 过渡
+   4. 中文优先：所有字号尺度、行高、字距都按中文方块字调整
+   5. 类名体系完全独立：frame / stage / runner / cue / unfold / rail / lede
+
+   * 单位用 em / 1rem-base 而不是 vh / vw —— 因为容器固定了，
+     scale 后所有内部尺寸自动按比例缩放
+   ========================================================================== */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #000);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* ============================================================================
+   .marquee · 整个 deck 的舞台外框（视口铺满，居中容纳 .deck）
+   ========================================================================== */
+.marquee {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    perspective: 1200px;
+}
+
+/* ============================================================================
+   .deck · 全部 frame 的容器（1280×720 基准）
+   通过 CSS 变量 --fit-scale 由 JS 注入，作整体缩放
+   ========================================================================== */
+.deck {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #0f0f0f);
+    color: var(--stage-ink, #f5f1e8);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+
+/* ============================================================================
+   .frame · 单张幻灯片 (绝对定位叠加，data-active 控制显隐)
+   ========================================================================== */
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 64px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(60px);
+    transition:
+        opacity 0.55s cubic-bezier(0.2, 0.9, 0.25, 1),
+        transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1),
+        visibility 0s linear 0.55s;
+    pointer-events: none;
+}
+
+.frame[data-state="active"] {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    transition:
+        opacity 0.65s cubic-bezier(0.2, 0.9, 0.25, 1) 0.05s,
+        transform 0.65s cubic-bezier(0.2, 0.9, 0.25, 1) 0.05s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+
+.frame[data-state="past"] {
+    opacity: 0;
+    transform: translateX(-60px);
+}
+
+/* ============================================================================
+   .stage · frame 内的内容容器，弹性居中
+   ========================================================================== */
+.stage {
+    flex: 1;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    gap: var(--stage-gap, 28px);
+    max-width: 100%; max-height: 100%;
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+}
+
+/* ============================================================================
+   字号尺度（compact / normal / loose 三档）
+   单位 rem，根 font-size 14px 起步
+   ========================================================================== */
+:root {
+    font-size: 14px;
+
+    /* 默认（normal）—— 中文优化的字号尺度 */
+    --type-display: 5.2rem;    /* 大标题（封面/收尾）*/
+    --type-h1: 4.0rem;          /* 章节扉 */
+    --type-h2: 2.4rem;          /* 内容页主标 */
+    --type-h3: 1.5rem;          /* 卡片标题 */
+    --type-body: 1.05rem;       /* 正文 */
+    --type-small: 0.86rem;      /* 角注 */
+    --type-tag: 0.78rem;        /* 标签/页码 */
+
+    /* 行高 —— 中文方块字需要更松散 */
+    --leading-tight: 1.2;
+    --leading-snug: 1.4;
+    --leading-cozy: 1.7;        /* 默认正文 */
+    --leading-roomy: 1.85;
+
+    /* 字距 */
+    --track-han: 0.02em;        /* 中文字距 */
+    --track-latin: -0.005em;    /* 西文字距 */
+    --track-tag: 0.22em;         /* tag/eyebrow 等大字距 */
+
+    /* 内边距与间距 */
+    --frame-pad: 64px;
+    --stage-gap: 28px;
+    --col-gap: 36px;
+}
+
+.deck--density-compact {
+    --type-display: 4.4rem;
+    --type-h1: 3.4rem;
+    --type-h2: 2.0rem;
+    --type-h3: 1.3rem;
+    --type-body: 0.95rem;
+    --type-small: 0.78rem;
+    --frame-pad: 48px;
+    --stage-gap: 20px;
+    --leading-cozy: 1.55;
+}
+
+.deck--density-loose {
+    --type-display: 5.8rem;
+    --type-h1: 4.6rem;
+    --type-h2: 2.8rem;
+    --type-h3: 1.7rem;
+    --type-body: 1.15rem;
+    --type-small: 0.92rem;
+    --frame-pad: 88px;
+    --stage-gap: 36px;
+    --leading-cozy: 1.85;
+}
+
+/* ============================================================================
+   中文 vs 西文 字距切换
+   ========================================================================== */
+.frame { letter-spacing: var(--track-han); }
+.frame :lang(en), .frame .latin, .frame .num {
+    letter-spacing: var(--track-latin);
+    font-family: var(--type-latin, inherit);
+}
+
+/* ============================================================================
+   .runner · 顶部 / 底部页脚徽章带（替代旧 .chrome）
+   ========================================================================== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad);
+    right: var(--frame-pad);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--type-latin, serif);
+    font-size: var(--type-tag);
+    color: var(--stage-faint, #888);
+    letter-spacing: var(--track-tag);
+    z-index: 5;
+}
+.runner--top { top: 36px; }
+.runner--bottom { bottom: 32px; }
+
+.runner .runner-mark {
+    display: inline-flex; align-items: center; gap: 0.6em;
+}
+.runner .runner-mark::before {
+    content: ''; width: 5px; height: 5px;
+    background: var(--accent-key, currentColor);
+    border-radius: 50%;
+}
+
+/* ============================================================================
+   .cue · 小标题前的"提示线"（替代 .eyebrow）
+   ========================================================================== */
+.cue {
+    display: inline-flex; align-items: center; gap: 0.9em;
+    font-family: var(--type-latin, serif); font-style: italic;
+    color: var(--accent-key);
+    font-size: var(--type-small);
+    letter-spacing: var(--track-tag);
+    margin-bottom: 0.4em;
+}
+.cue::before {
+    content: ''; width: 32px; height: 1px;
+    background: var(--accent-key, currentColor);
+}
+
+/* ============================================================================
+   .lede · 通用大标题 / .deck-meta · 副语
+   ========================================================================== */
+.lede {
+    font-family: var(--type-display-cn, serif);
+    font-weight: 700;
+    font-size: var(--type-h2);
+    line-height: var(--leading-tight);
+    color: var(--stage-paper, currentColor);
+    max-width: 22ch;
+}
+.deck-meta {
+    font-family: var(--type-body, sans-serif);
+    font-size: var(--type-body);
+    line-height: var(--leading-cozy);
+    color: var(--stage-faint, currentColor);
+    max-width: 60ch;
+    font-weight: 300;
+}
+
+/* ============================================================================
+   .unfold · 入场揭示动画（替代 .reveal）
+   .frame[data-state="active"] 触发时，依次显现 .unfold 子节点
+   ========================================================================== */
+.unfold {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+        opacity 0.6s cubic-bezier(0.2, 0.9, 0.25, 1),
+        transform 0.6s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.frame[data-state="active"] .unfold {
+    opacity: 1;
+    transform: translateY(0);
+}
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.12s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.22s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.32s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.42s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.52s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.62s; }
+.frame[data-state="active"] .unfold:nth-child(7) { transition-delay: 0.72s; }
+.frame[data-state="active"] .unfold:nth-child(8) { transition-delay: 0.82s; }
+
+/* ============================================================================
+   .rail · 右侧导航点（替代 .nav-dots）
+   定位在 .deck 外（视口右边），方便缩放后还能点
+   ========================================================================== */
+.rail {
+    position: fixed; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--stage-paper, #ccc);
+    opacity: 0.25;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.3s, transform 0.3s, background 0.3s;
+}
+.rail .rail-pip:hover { opacity: 0.6; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-key);
+    opacity: 1;
+    transform: scale(1.5);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-key) 25%, transparent);
+}
+
+/* ============================================================================
+   .hotkey-hint · 底部快捷键提示（替代 .keyboard-hint）
+   ========================================================================== */
+.hotkey-hint {
+    position: fixed; bottom: 16px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-latin, serif); font-style: italic;
+    font-size: 12px;
+    color: var(--stage-faint, #888);
+    opacity: 0.5;
+    letter-spacing: 0.2em;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   通用辅助类
+   ========================================================================== */
+.accent-key { color: var(--accent-key); }
+.accent-soft { color: var(--accent-soft); }
+.accent-warn { color: var(--accent-warn); }
+.han { letter-spacing: var(--track-han); }
+.latin { letter-spacing: var(--track-latin); }
+
+/* 图片视口约束 */
+.frame img:not([class*="hero"]):not([class*="bg"]):not([class*="cover"]) {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* ============================================================================
+   响应式：极窄视口下 deck 用 grid 堆叠模式（fallback，移动端）
+   主要在 deck.js 中通过 .deck-mode--stack 切换
+   ========================================================================== */
+.deck-mode--stack { display: block; height: auto; overflow-y: auto; transform: none; }
+.deck-mode--stack .frame {
+    position: relative; inset: auto;
+    opacity: 1; visibility: visible;
+    transform: none; pointer-events: auto;
+    margin-bottom: 24px;
+    page-break-after: always;
+}
+.deck-mode--stack .rail, .deck-mode--stack .hotkey-hint { display: none; }
+
+/* ============================================================================
+   可访问性：减少动效偏好
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    .frame, .unfold {
+        transition: opacity 0.18s linear !important;
+        transform: none !important;
+    }
+}
+
+/* ============================================================================
+   打印 / PDF
+   ========================================================================== */
+@media print {
+    html, body { overflow: visible; background: white; }
+    .marquee { position: static; }
+    .deck {
+        transform: none !important;
+        width: 100%; height: auto;
+    }
+    .frame {
+        position: relative; inset: auto;
+        opacity: 1; visibility: visible;
+        transform: none;
+        page-break-after: always;
+        break-after: page;
+        height: 720px;
+    }
+    .rail, .hotkey-hint { display: none !important; }
+}

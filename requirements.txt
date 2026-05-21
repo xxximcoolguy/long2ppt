@@ -1,0 +1,20 @@
+# longtext-to-slides · Python 依赖
+
+# === 必装：文本+图片提取 (scripts/extract.py) ===
+pdfplumber>=0.11      # PDF 提取（优先）
+pypdf>=4.0            # PDF fallback
+python-docx>=1.1      # DOCX
+ebooklib>=0.18        # EPUB
+beautifulsoup4>=4.12  # HTML / EPUB 解析
+
+# === 可选：PPTX 导出 (scripts/export_pptx.py) ===
+# 取消注释以启用 PPTX 导出
+# playwright>=1.40
+# python-pptx>=0.6
+
+# 安装后还需要：
+#   playwright install chromium
+
+# === 不需要装的（仅说明）===
+# - Pillow / PIL 通常会随 pdfplumber 自动安装
+# - lxml 通常会随 python-docx / beautifulsoup4 自动安装

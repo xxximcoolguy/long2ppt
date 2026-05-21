@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>一个人 + AI + 一群人 · 亦仁十周年直播分享</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=IBM+Plex+Sans:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================
+   1. viewport-base.css (frontend-slides 强制基线)
+   ========================================================== */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+.slide {
+    width: 100vw; height: 100vh; height: 100dvh;
+    overflow: hidden; scroll-snap-align: start;
+    display: flex; flex-direction: column; position: relative;
+}
+.slide-content {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; max-height: 100%; overflow: hidden;
+    padding: var(--slide-padding);
+}
+:root {
+    --title-size: clamp(1.5rem, 5vw, 4rem);
+    --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+    --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+    --body-size: clamp(0.75rem, 1.4vw, 1.05rem);
+    --small-size: clamp(0.65rem, 1vw, 0.875rem);
+    --slide-padding: clamp(1rem, 4vw, 4rem);
+    --content-gap: clamp(0.5rem, 1.6vw, 1.6rem);
+    --element-gap: clamp(0.25rem, 1vw, 1rem);
+}
+.card, .container, .content-box { max-width: min(90vw, 1100px); max-height: min(82vh, 720px); }
+img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+@media (max-height: 700px) {
+    :root { --slide-padding: clamp(0.75rem, 3vw, 2rem); --content-gap: clamp(0.4rem, 1.2vw, 1rem);
+        --title-size: clamp(1.25rem, 4.5vw, 2.5rem); --h2-size: clamp(1rem, 3vw, 1.75rem); }
+}
+@media (max-height: 600px) {
+    :root { --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem); --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+        --title-size: clamp(1.1rem, 4vw, 2rem); --body-size: clamp(0.7rem, 1.2vw, 0.95rem); }
+    .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+    :root { --slide-padding: clamp(0.4rem, 2vw, 1rem); --title-size: clamp(1rem, 3.5vw, 1.5rem);
+        --h2-size: clamp(0.9rem, 2.5vw, 1.25rem); --body-size: clamp(0.65rem, 1vw, 0.85rem); }
+}
+@media (max-width: 600px) {
+    :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+    .grid { grid-template-columns: 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+    html { scroll-behavior: auto; }
+}
+
+/* ==========================================================
+   2. 主题：Dark Botanical 中文变体 —— 深黑 + 暖金，TED 演讲质感
+   ========================================================== */
+:root {
+    --bg: #0f0f0f;
+    --bg-soft: #161513;
+    --paper: #f1ede5;
+    --ink: #e8e4df;
+    --muted: #9a9590;
+    --line: rgba(232, 228, 223, 0.10);
+    --accent: #d4a574;          /* 暖金 */
+    --accent-2: #c9b896;        /* 古金 */
+    --accent-3: #e8b4b8;        /* 暖粉 */
+    --serif: 'Cormorant', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+    --serif-cn: 'Noto Serif SC', 'Cormorant', 'Source Han Serif SC', 'Songti SC', serif;
+    --italic: 'Cormorant Garamond', 'Cormorant', serif;
+    --sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.005em;
+}
+
+/* 全局背景：柔和渐变圆（Dark Botanical 招牌装饰） */
+.slide::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 45% 55% at 12% 18%, rgba(212, 165, 116, 0.10), transparent 65%),
+        radial-gradient(ellipse 35% 45% at 88% 82%, rgba(232, 180, 184, 0.07), transparent 65%),
+        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(201, 184, 150, 0.05), transparent 65%);
+}
+/* 装饰：右上角抽象细线 */
+.slide::after {
+    content: '';
+    position: absolute;
+    top: clamp(2rem, 6vw, 5rem);
+    right: clamp(2rem, 5vw, 4rem);
+    width: 1px;
+    height: clamp(40px, 8vh, 80px);
+    background: linear-gradient(180deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.slide-content { position: relative; z-index: 2; }
+
+/* 顶部页码 / 章节小标识 */
+.chrome {
+    position: absolute; top: clamp(0.8rem, 2vw, 1.6rem); left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 var(--slide-padding);
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.7rem, 1.1vw, 0.95rem);
+    color: var(--muted); letter-spacing: 0.12em; z-index: 5;
+}
+.chrome .mark { display: flex; align-items: center; gap: 0.6em; }
+.chrome .mark::before {
+    content: ''; width: 4px; height: 4px; background: var(--accent);
+    border-radius: 50%;
+}
+.chrome .mark::after {
+    content: ''; height: 1px; width: clamp(20px, 3vw, 40px);
+    background: var(--accent); opacity: 0.5;
+    margin-left: 0.4em;
+}
+
+/* ===== 字体助手 ===== */
+.serif { font-family: var(--serif); }
+.mono { font-family: var(--mono); }
+.accent { color: var(--accent); }
+.accent-2 { color: var(--accent-2); }
+.accent-3 { color: var(--accent-3); }
+
+/* ===== 通用标题 ===== */
+.eyebrow {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+    color: var(--accent); letter-spacing: 0.25em;
+    margin-bottom: 1em;
+    display: flex; align-items: center; gap: 0.8em;
+}
+.eyebrow::before {
+    content: ''; width: clamp(20px, 3vw, 40px); height: 1px;
+    background: var(--accent);
+}
+.h-title {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: var(--h2-size); line-height: 1.2;
+    margin-bottom: 0.7em; letter-spacing: -0.01em;
+}
+.h-sub {
+    font-family: var(--sans); font-size: var(--body-size); color: var(--muted);
+    line-height: 1.8; max-width: 60ch; font-weight: 300;
+}
+
+/* ===========================================================
+   3. Slide 1 — 封面（Dark Botanical 招牌：柔和渐变 + 优雅衬线）
+   =========================================================== */
+.cover .slide-content { padding: var(--slide-padding); justify-content: space-between; }
+.cover-top, .cover-bottom {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.75rem, 1.2vw, 1rem);
+    color: var(--muted); letter-spacing: 0.15em;
+}
+.cover-main { display: flex; flex-direction: column; gap: clamp(1rem, 2.5vw, 2rem); align-self: center; max-width: 80%; }
+.cover h1 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 5.5rem);
+    line-height: 1.1; letter-spacing: -0.01em;
+    color: var(--paper);
+}
+.cover h1 .plus {
+    font-family: var(--italic); font-style: italic; font-weight: 400;
+    color: var(--accent); padding: 0 0.2em;
+}
+.cover .subtitle {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(1rem, 2vw, 1.5rem); color: var(--ink);
+    max-width: 30ch; font-weight: 400; line-height: 1.5;
+}
+.cover .subtitle .quiet {
+    display: block; margin-top: 0.4em;
+    font-family: var(--sans); font-style: normal; font-weight: 300;
+    color: var(--muted); font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+}
+.cover .stamp {
+    display: inline-flex; align-items: center; gap: 0.7em;
+    padding: 0.5em 1em; border: 1px solid var(--accent);
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.8rem, 1.3vw, 1rem);
+    color: var(--accent); width: fit-content; letter-spacing: 0.12em;
+    border-radius: 2em;
+}
+.cover .stamp::before {
+    content: ''; width: 5px; height: 5px;
+    background: var(--accent); border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ===========================================================
+   4. 通用版式：开场页 / 内容页 / 章节扉页
+   =========================================================== */
+.opener .slide-content {
+    justify-content: center;
+    text-align: left;
+    gap: var(--content-gap);
+}
+.opener .big-num {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    color: var(--accent); font-weight: 400; line-height: 1;
+    letter-spacing: 0.05em;
+}
+.opener h2 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(1.6rem, 4.5vw, 3.2rem); line-height: 1.3;
+    max-width: 24ch; letter-spacing: -0.005em;
+}
+.opener .lead {
+    font-size: var(--body-size); color: var(--muted);
+    max-width: 60ch; line-height: 1.7; margin-top: 0.5em;
+}
+
+.three-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(0.6rem, 1.5vw, 1.2rem); margin-top: clamp(0.8rem, 2vw, 1.5rem);
+}
+.three-cards .c {
+    border-left: 1px solid var(--accent);
+    padding: clamp(0.6rem, 1.6vw, 1.2rem) clamp(1rem, 2vw, 1.5rem);
+    background: linear-gradient(90deg, rgba(212, 165, 116, 0.04), transparent);
+}
+.three-cards .c .n {
+    font-family: var(--italic); font-style: italic;
+    color: var(--accent); font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+    letter-spacing: 0.2em; margin-bottom: 0.6em;
+}
+.three-cards .c .t {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: var(--h3-size); line-height: 1.3; margin-bottom: 0.5em;
+    color: var(--paper);
+}
+.three-cards .c .d {
+    font-size: var(--body-size); color: var(--muted); line-height: 1.7; font-weight: 300;
+}
+
+/* ===== 目录页 ===== */
+.toc .slide-content { justify-content: center; }
+.toc ol {
+    list-style: none; counter-reset: toc;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: clamp(0.5rem, 1.5vw, 1rem) clamp(2rem, 4vw, 4rem);
+    margin-top: clamp(1rem, 2.5vw, 2rem);
+}
+.toc ol li {
+    counter-increment: toc;
+    display: flex; align-items: baseline; gap: 1em;
+    padding-bottom: clamp(0.4rem, 1vw, 0.8rem);
+    border-bottom: 1px dashed var(--line);
+}
+.toc ol li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: var(--italic); font-style: italic; color: var(--accent);
+    font-size: clamp(0.9rem, 1.5vw, 1.2rem); font-weight: 500; letter-spacing: 0.05em;
+    min-width: 2.5em;
+}
+.toc ol li .t {
+    font-family: var(--serif-cn); font-weight: 700; font-size: var(--h3-size);
+    flex: 1; color: var(--paper);
+}
+.toc ol li .d {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.75rem, 1.2vw, 0.95rem); color: var(--muted);
+    text-align: right; letter-spacing: 0.1em;
+}
+
+/* ===== 章节扉页 (PART 01...) ===== */
+.part .slide-content { justify-content: center; }
+.part .part-num {
+    font-family: var(--italic); font-style: italic; font-weight: 500;
+    font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+    color: var(--accent); letter-spacing: 0.4em;
+    margin-bottom: 1em;
+    display: flex; align-items: center; gap: 0.8em;
+}
+.part .part-num::after {
+    content: ''; flex: 1; max-width: clamp(60px, 10vw, 120px);
+    height: 1px; background: var(--accent); opacity: 0.5;
+}
+.part h2 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(2.2rem, 7vw, 5rem); line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, var(--paper) 20%, var(--accent-2) 95%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.part .part-en {
+    font-family: var(--italic); font-style: italic;
+    color: var(--muted);
+    font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+    margin-top: 1.2em; letter-spacing: 0.2em;
+}
+.part .part-lead {
+    font-family: var(--sans); font-weight: 300;
+    font-size: var(--body-size); color: var(--ink);
+    margin-top: 1.5em; max-width: 50ch; line-height: 1.8;
+    border-left: 1px solid var(--accent); padding-left: 1.2em;
+}
+
+/* ===== 工具清单页 ===== */
+.tools-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(0.5rem, 1.3vw, 1rem);
+    margin-top: clamp(0.8rem, 2vw, 1.5rem);
+}
+.tool {
+    border-top: 1px solid var(--accent);
+    padding: clamp(0.7rem, 1.4vw, 1.2rem) clamp(0.6rem, 1.2vw, 1rem) clamp(0.7rem, 1.4vw, 1.2rem) 0;
+    background: linear-gradient(180deg, rgba(212, 165, 116, 0.04), transparent 70%);
+    display: flex; flex-direction: column; gap: 0.4em;
+    position: relative; overflow: hidden;
+}
+.tool .tag {
+    font-family: var(--italic); font-style: italic; font-size: clamp(0.7rem, 1.15vw, 0.9rem);
+    color: var(--accent); letter-spacing: 0.18em;
+}
+.tool h3 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(1rem, 2vw, 1.4rem);
+    line-height: 1.25; color: var(--paper);
+}
+.tool .role {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.85rem, 1.4vw, 1.1rem); color: var(--accent-3);
+    font-weight: 500;
+}
+.tool .desc {
+    font-size: var(--small-size); color: var(--muted);
+    line-height: 1.7; font-weight: 300;
+}
+
+/* ===== 四步框架 ===== */
+.framework {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: clamp(0.4rem, 1vw, 0.8rem);
+    margin-top: clamp(1rem, 2.5vw, 2rem);
+    align-items: stretch;
+}
+.step {
+    border-top: 1px solid var(--line);
+    padding: clamp(0.8rem, 1.8vw, 1.4rem) clamp(0.5rem, 1vw, 1rem) clamp(0.5rem, 1vw, 1rem) 0;
+    position: relative; display: flex; flex-direction: column; gap: 0.6em;
+}
+.step::before {
+    content: ''; position: absolute; top: -1px; left: 0;
+    width: 30%; height: 1px; background: var(--accent);
+}
+.step .step-n {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 400; color: var(--accent); line-height: 1;
+    letter-spacing: 0.02em;
+}
+.step h4 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
+    line-height: 1.3; color: var(--paper);
+}
+.step .step-desc {
+    font-size: var(--small-size); color: var(--muted); line-height: 1.7; font-weight: 300;
+}
+.flywheel-note {
+    margin-top: clamp(1rem, 2vw, 1.5rem); text-align: center;
+    font-family: var(--italic); font-style: italic; font-size: var(--body-size);
+    color: var(--accent-2); letter-spacing: 0.15em;
+}
+
+/* ===== 双栏内容（信息源 / 思考决策 / 沉淀复用） ===== */
+.two-col {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: clamp(1rem, 3vw, 2.5rem); margin-top: clamp(0.8rem, 2vw, 1.5rem);
+    align-items: start;
+}
+.col h3 {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+    color: var(--accent); letter-spacing: 0.2em; margin-bottom: 1em;
+    padding-bottom: 0.6em; border-bottom: 1px solid var(--accent);
+    font-weight: 500;
+}
+.col ul { list-style: none; display: flex; flex-direction: column; gap: 0.7em; }
+.col ul li {
+    font-size: var(--body-size); color: var(--ink); line-height: 1.6;
+    padding-left: 1.2em; position: relative; font-weight: 300;
+}
+.col ul li::before {
+    content: '·'; position: absolute; left: 0; color: var(--accent);
+    font-family: var(--serif); font-size: 1.5em; line-height: 0.9; font-weight: 700;
+}
+.col ul li b { color: var(--accent-2); font-weight: 500; font-style: italic; font-family: var(--italic); }
+.col ul li .mini {
+    display: block; font-size: var(--small-size); color: var(--muted);
+    margin-top: 0.3em; font-style: italic; font-family: var(--italic);
+}
+
+/* ===== 执行页（双案例） ===== */
+.cases { display: grid; grid-template-columns: 1fr 1fr;
+    gap: clamp(1rem, 2vw, 1.6rem); margin-top: clamp(0.6rem, 1.5vw, 1.2rem); }
+.case {
+    border-left: 1px solid var(--accent);
+    padding: clamp(0.8rem, 1.8vw, 1.4rem) clamp(1rem, 2vw, 1.5rem);
+    background: linear-gradient(90deg, rgba(212,165,116,0.05), transparent 80%);
+}
+.case .case-tag {
+    font-family: var(--italic); font-style: italic; color: var(--accent);
+    font-size: clamp(0.8rem, 1.3vw, 1.05rem); letter-spacing: 0.2em; margin-bottom: 0.6em;
+    font-weight: 500;
+}
+.case h4 {
+    font-family: var(--serif-cn); font-size: clamp(1rem, 1.8vw, 1.3rem);
+    font-weight: 700; line-height: 1.4; margin-bottom: 0.6em; color: var(--paper);
+}
+.case p { font-size: var(--body-size); color: var(--muted); line-height: 1.8; font-weight: 300; }
+.dual-tools {
+    display: flex; gap: 0.8em; flex-wrap: wrap;
+    margin-top: clamp(0.5rem, 1vw, 0.8rem);
+}
+.dual-tools .pill {
+    border: 1px solid var(--accent); color: var(--accent);
+    font-family: var(--italic); font-style: italic; font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+    padding: 0.3em 1em; letter-spacing: 0.08em; border-radius: 2em;
+}
+
+/* ===== 三阶段 ===== */
+.stages {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(0.5rem, 1.5vw, 1.2rem);
+    margin-top: clamp(1rem, 2.5vw, 2rem);
+}
+.stage {
+    padding: clamp(0.8rem, 2vw, 1.5rem);
+    border-top: 2px solid var(--line);
+    position: relative;
+}
+.stage:nth-child(1) { border-top-color: var(--muted); }
+.stage:nth-child(2) { border-top-color: var(--accent-3); }
+.stage:nth-child(3) { border-top-color: var(--accent); }
+.stage .roman {
+    font-family: var(--italic); font-style: italic; font-size: clamp(0.8rem, 1.3vw, 1.05rem);
+    color: var(--muted); letter-spacing: 0.3em; margin-bottom: 0.6em;
+}
+.stage h4 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(1.1rem, 2.2vw, 1.6rem); line-height: 1.3;
+    margin-bottom: 0.5em; color: var(--paper);
+}
+.stage .formula {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.85rem, 1.4vw, 1.1rem);
+    color: var(--accent); margin-bottom: 0.6em; letter-spacing: 0.05em;
+}
+.stage p { font-size: var(--body-size); color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+/* ===== 八大方向 ===== */
+.eight-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 1fr;
+    gap: clamp(0.4rem, 1vw, 0.8rem);
+    margin-top: clamp(0.8rem, 1.8vw, 1.4rem);
+}
+.dir {
+    border: 1px solid var(--line); padding: clamp(0.6rem, 1.3vw, 1rem);
+    display: flex; flex-direction: column; gap: 0.4em;
+    background: rgba(212, 165, 116, 0.02);
+    transition: background 0.4s, border-color 0.4s;
+}
+.dir:hover { background: rgba(212,165,116,0.08); border-color: var(--accent); }
+.dir .num {
+    font-family: var(--italic); font-style: italic;
+    color: var(--accent); font-size: clamp(0.75rem, 1.2vw, 0.95rem); letter-spacing: 0.05em;
+}
+.dir .name {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(0.95rem, 1.7vw, 1.2rem); color: var(--paper);
+}
+.dir .tag {
+    font-size: var(--small-size); color: var(--muted); line-height: 1.6; font-weight: 300;
+}
+.foundation {
+    margin-top: clamp(0.6rem, 1.5vw, 1rem);
+    padding: clamp(0.7rem, 1.5vw, 1.1rem) clamp(1rem, 2vw, 1.4rem);
+    background: linear-gradient(90deg, rgba(212,165,116,0.10), transparent);
+    border-left: 2px solid var(--accent);
+    font-size: var(--body-size); color: var(--ink); line-height: 1.7; font-weight: 300;
+}
+.foundation b { color: var(--accent); font-weight: 500; }
+
+/* ===== 三大趋势 ===== */
+.trends { display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(0.6rem, 1.5vw, 1.2rem); margin-top: clamp(1rem, 2.5vw, 2rem); }
+.trend { text-align: center; padding: clamp(0.8rem, 2vw, 1.5rem) 0.5em; }
+.trend .symbol {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+    color: var(--accent); font-weight: 400; line-height: 1;
+}
+.trend h4 {
+    font-family: var(--serif-cn); font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 700; margin: 0.7em 0 0.4em; color: var(--paper);
+}
+.trend p { font-size: var(--small-size); color: var(--muted); line-height: 1.7; font-weight: 300; }
+.endgame {
+    margin-top: clamp(1rem, 2vw, 1.5rem);
+    text-align: center; font-size: var(--body-size);
+    color: var(--accent-2); font-family: var(--italic); font-style: italic; font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+/* ===== 心法页（四心法 / 三心法） ===== */
+.mindsets {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: clamp(0.6rem, 1.6vw, 1.2rem);
+    margin-top: clamp(0.8rem, 2vw, 1.5rem);
+}
+.mindsets.cols-2 { grid-template-columns: 1fr 1fr; }
+.mind {
+    padding: clamp(0.8rem, 1.8vw, 1.4rem) clamp(1rem, 2vw, 1.5rem);
+    border-left: 1px solid var(--accent);
+    background: linear-gradient(90deg, rgba(212, 165, 116, 0.04), transparent 90%);
+}
+.mind .label {
+    font-family: var(--italic); font-style: italic;
+    color: var(--accent); font-size: clamp(0.8rem, 1.3vw, 1.05rem);
+    letter-spacing: 0.2em; margin-bottom: 0.6em; font-weight: 500;
+}
+.mind h4 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(1.2rem, 2.2vw, 1.7rem); margin-bottom: 0.6em; line-height: 1.3;
+    color: var(--paper);
+}
+.mind p { font-size: var(--body-size); color: var(--muted); line-height: 1.8; font-weight: 300; }
+
+/* ===== 金句墙 ===== */
+.quotes {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: clamp(0.5rem, 1.2vw, 1rem);
+    margin-top: clamp(0.6rem, 1.5vw, 1.2rem);
+}
+.q {
+    padding: clamp(0.6rem, 1.2vw, 1rem) clamp(0.6rem, 1.2vw, 1rem) clamp(0.6rem, 1.2vw, 1rem) 1.5em;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--serif-cn); font-weight: 500;
+    font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+    line-height: 1.5; color: var(--ink);
+    position: relative;
+}
+.q::before {
+    content: '"'; position: absolute; left: 0; top: -0.1em;
+    color: var(--accent); font-size: 2em; font-family: var(--italic); font-style: italic;
+    line-height: 1; font-weight: 400;
+}
+.q.hl { color: var(--accent); }
+.q.hl::before { color: var(--accent-3); }
+
+/* ===== 收尾页 ===== */
+.finale .slide-content {
+    justify-content: center; text-align: center; align-items: center;
+}
+.finale .pre {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+    color: var(--muted); letter-spacing: 0.3em; margin-bottom: 1.5em;
+}
+.finale h1 {
+    font-family: var(--serif-cn); font-weight: 700;
+    font-size: clamp(2rem, 7vw, 5.5rem); line-height: 1.2;
+    background: linear-gradient(180deg, var(--paper) 10%, var(--accent) 90%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.8em; letter-spacing: -0.01em;
+}
+.finale .post {
+    font-family: var(--italic); font-style: italic;
+    font-size: clamp(1rem, 2vw, 1.4rem);
+    color: var(--ink); max-width: 32ch; line-height: 1.8; font-weight: 400;
+}
+.finale .signature {
+    margin-top: clamp(2rem, 4vw, 3rem);
+    font-family: var(--italic); font-style: italic; color: var(--accent);
+    font-size: clamp(0.9rem, 1.4vw, 1.1rem); letter-spacing: 0.25em;
+    font-weight: 500;
+}
+
+/* ===== 入场动画：上下文复用 ===== */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(.16,1,.3,1); }
+.slide.active .reveal { opacity: 1; transform: translateY(0); }
+.slide.active .reveal:nth-child(1) { transition-delay: 0.1s; }
+.slide.active .reveal:nth-child(2) { transition-delay: 0.25s; }
+.slide.active .reveal:nth-child(3) { transition-delay: 0.4s; }
+.slide.active .reveal:nth-child(4) { transition-delay: 0.55s; }
+.slide.active .reveal:nth-child(5) { transition-delay: 0.7s; }
+.slide.active .reveal:nth-child(6) { transition-delay: 0.85s; }
+
+/* ===== 导航点 ===== */
+.nav-dots {
+    position: fixed; right: clamp(0.8rem, 2vw, 1.6rem); top: 50%;
+    transform: translateY(-50%); display: flex; flex-direction: column;
+    gap: 0.6em; z-index: 100;
+}
+.nav-dots a {
+    width: 0.5em; height: 0.5em; border-radius: 50%;
+    background: var(--muted); opacity: 0.3; transition: all 0.3s;
+    display: block;
+}
+.nav-dots a:hover { opacity: 0.7; }
+.nav-dots a.active { background: var(--accent); opacity: 1; transform: scale(1.5); box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2); }
+
+.keyboard-hint {
+    position: fixed; bottom: clamp(0.6rem, 1.5vw, 1rem);
+    left: 50%; transform: translateX(-50%);
+    font-family: var(--italic); font-style: italic; font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+    color: var(--muted); letter-spacing: 0.2em; z-index: 50;
+    opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     SLIDE 01 — 封面
+========================================================= -->
+<section class="slide cover" data-title="封面">
+    <div class="slide-content">
+        <div class="cover-top reveal">
+            <span>YI REN × SHENGCAI · 2026</span>
+            <span>EP.10 / KEYNOTE</span>
+        </div>
+        <div class="cover-main">
+            <div class="reveal">
+                <div class="stamp">十周年 · 唯一公开直播分享</div>
+            </div>
+            <h1 class="reveal">
+                一个人<span class="plus">+</span>AI<span class="plus">+</span>一群人
+            </h1>
+            <p class="subtitle reveal">
+                亦仁十周年直播分享整理 · 2026.04.15
+                <span class="quiet">"长坡厚雪，一起穿越这场 AI 变革。"</span>
+            </p>
+        </div>
+        <div class="cover-bottom reveal">
+            <span>SOURCE · 4.5h LIVE · 19P PDF</span>
+            <span class="accent">→ SCROLL</span>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 02 — 开场：为什么今天站出来直播？
+========================================================= -->
+<section class="slide opener" data-title="开场">
+    <div class="chrome">
+        <span class="mark">PROLOGUE</span>
+        <span>01 / 20</span>
+    </div>
+    <div class="slide-content">
+        <div class="big-num reveal">// 开场</div>
+        <h2 class="reveal">我比较 i，也比较任性 ——<br>为什么今天还是站出来？</h2>
+        <p class="lead reveal">"我其实是不直播的，团队拿刀架在脖子上我也不想播。今天开年度直播，是因为三件事撞到一起了。"</p>
+        <div class="three-cards">
+            <div class="c reveal">
+                <div class="n">REASON 01</div>
+                <div class="t">AI 到了临界点</div>
+                <div class="d">这半年 AI 越来越快，把想法更快分享出来达成共识，对所有人都有帮助。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">REASON 02</div>
+                <div class="t">作为创始人讲讲生财</div>
+                <div class="d">第十年、在籍 3 万圈友、累计 7 万。每人眼里都有自己的生财，那我眼里的呢？</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">REASON 03</div>
+                <div class="t">沉淀了 AI 经验</div>
+                <div class="d">过去一年深度用 AI，踩了很多坑、花了很多钱，沉淀出有价值的工具与方法。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 03 — 目录
+========================================================= -->
+<section class="slide toc" data-title="目录">
+    <div class="chrome">
+        <span class="mark">CONTENTS</span>
+        <span>02 / 20</span>
+    </div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">TABLE OF CONTENTS · 全篇导览</div>
+        <h2 class="h-title reveal">五个版块 · 一个收尾</h2>
+        <p class="h-sub reveal">从工具到方法，从框架到方向，从心法到结语 —— 把过去一年的所有积累，一次性交给你。</p>
+        <ol>
+            <li class="reveal"><span class="t">我的 AI 工具清单</span><span class="d">PART 01</span></li>
+            <li class="reveal"><span class="t">决策者的四步框架</span><span class="d">PART 02</span></li>
+            <li class="reveal"><span class="t">三个心法 & 人机合一</span><span class="d">PART 03</span></li>
+            <li class="reveal"><span class="t">2026 八大方向 + 三趋势</span><span class="d">PART 04</span></li>
+            <li class="reveal"><span class="t">生财第十年 · 四站规划</span><span class="d">PART 05</span></li>
+            <li class="reveal"><span class="t">尾声：聚焦 / 边缘人 / 先干 / 换圈</span><span class="d">FINALE</span></li>
+        </ol>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 04 — PART 01 章节扉
+========================================================= -->
+<section class="slide part" data-title="PART 01">
+    <div class="chrome"><span class="mark">PART 01</span><span>03 / 20</span></div>
+    <div class="slide-content">
+        <div class="part-num reveal">PART · 01</div>
+        <h2 class="reveal">我的 AI 工具清单</h2>
+        <div class="part-en reveal">MY AI STACK · LESS IS MORE</div>
+        <p class="part-lead reveal">AI 工具是<b class="accent">投资行为</b>，不是消费行为。这是我这几年 ROI 最高的投资 —— 用几十到上千美金，拥有了全世界最好的几个"人"在帮你。<br><br>2025 上半年我搞了很多工具，现在反而越用越少 —— AI 到了<b class="accent-2">做减法</b>的阶段。</p>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 05 — 6 大核心工具
+========================================================= -->
+<section class="slide" data-title="6 大核心工具">
+    <div class="chrome"><span class="mark">01 · TOOLS</span><span>04 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">CORE STACK / 月支出不到 1000 美金</div>
+        <h2 class="h-title reveal">6 个核心 + Obsidian 工作台</h2>
+        <div class="tools-grid">
+            <div class="tool reveal">
+                <div class="tag">01 · INTERACTION KING</div>
+                <h3>Claude Max</h3>
+                <div class="role">跟"人"互动的王者</div>
+                <div class="desc">Claude Code 编程绝对最强；Cowork 做 PPT；财务分析、HTML、文案视觉化 —— 远远拉开差距。封号严重，又爱又恨。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">02 · STRATEGY</div>
+                <h3>ChatGPT Pro</h3>
+                <div class="role">战略决策型问答</div>
+                <div class="desc">睡前丢 6-7 个问题给 Pro 模型，它能等 70 分钟。Plus 20 刀又能用 Codex —— 我的脏活累活主力。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">03 · KNOWLEDGE</div>
+                <h3>Gemini + Notebook LM</h3>
+                <div class="role">学习神器（侧边栏 + Antigravity）</div>
+                <div class="desc">Google AI Pro 20 刀。AI 亦仁的标杆就是 Notebook LM —— 任何问题它都能给惊艳的回答。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">04 · MOBILE</div>
+                <h3>Manus</h3>
+                <div class="role">手机场景的"有经验员工"</div>
+                <div class="desc">不像 OpenClaw 要自己训练，Manus 是调教好的员工，布置任务一次出 PDF。AI 婚纱照调研就是它做的。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">05 · INTEL</div>
+                <h3>X + Grok</h3>
+                <div class="role">AI 经验的最大知识库</div>
+                <div class="desc">X 是 AI 实践最丰富的知识库；Grok 直接调取 X 所有数据 —— 等于我的"AI 经验查询器"。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">06 · TRANSLATE</div>
+                <h3>沉浸式翻译</h3>
+                <div class="role">全球信息无障碍</div>
+                <div class="desc">1000 块一年，涨到 1 万也得买。让我没有任何阻碍地浏览和学习全球信息。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 06 — Obsidian + Claude 工作台
+========================================================= -->
+<section class="slide opener" data-title="Obsidian 工作台">
+    <div class="chrome"><span class="mark">01 · BIGGEST SHIFT</span><span>05 / 20</span></div>
+    <div class="slide-content">
+        <div class="big-num reveal">// 最大的工作习惯变化</div>
+        <h2 class="reveal">从 <span style="color: var(--muted); text-decoration: line-through;">Obsidian → Cowork</span><br>变成 <span class="accent">Cowork → Obsidian</span></h2>
+        <p class="lead reveal">"以前打开电脑第一件事打开飞书或 Claude Code；现在第一件事打开 Obsidian —— 所有想法、信息、事项都放这里，让 Claude Code 帮我管理。"</p>
+        <div class="three-cards">
+            <div class="c reveal">
+                <div class="n">一站式管理</div>
+                <div class="t">微信 + 飞书 + 备忘录 → 全部进 Obsidian</div>
+                <div class="d">截图发给 Obsidian 里的 Claude 插件，让它记录提醒，事项不再散落各处。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">框架生产</div>
+                <div class="t">今天这份分享原始框架，就是这么做出来的</div>
+                <div class="d">把所有知识库导入 Obsidian，让 Claude 在里面帮我产出基础框架。用了差不多一周。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">两个插件</div>
+                <div class="t">Claudian · Clippings</div>
+                <div class="d">Claudian 在 Obsidian 里打开 Claude Code；Clippings 一键沉淀网页。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 07 — PART 02 扉页
+========================================================= -->
+<section class="slide part" data-title="PART 02">
+    <div class="chrome"><span class="mark">PART 02</span><span>06 / 20</span></div>
+    <div class="slide-content">
+        <div class="part-num reveal">PART · 02</div>
+        <h2 class="reveal">决策者的四步框架</h2>
+        <div class="part-en reveal">A DECISION-MAKER'S FRAMEWORK</div>
+        <p class="part-lead reveal">市面上分享 AI 的主要是技术开发者和内容生产者。<b class="accent">但我不是 —— 我是一个决策者。</b><br><br>公司老板、操盘手、一人公司，每天面对大量决策 —— 我们这种人怎么用 AI？这就是今天分享的视角。</p>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 08 — 四步框架总览
+========================================================= -->
+<section class="slide" data-title="四步框架">
+    <div class="chrome"><span class="mark">02 · FLYWHEEL</span><span>07 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">THE FOUR-STEP LOOP</div>
+        <h2 class="h-title reveal">信息 → 决策 → 执行 → 沉淀 = 飞轮</h2>
+        <p class="h-sub reveal">任何事我都按这个流程走 —— 一旦闭环，就形成飞轮。</p>
+        <div class="framework">
+            <div class="step reveal">
+                <div class="step-n">01</div>
+                <h4>信息源</h4>
+                <div class="step-desc">给自己吃好东西 —— 国内、海外、专属数据三层。天天吃垃圾内容，思考质量一定不高。</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">02</div>
+                <h4>思考决策</h4>
+                <div class="step-desc">Grok / ChatGPT Pro / Agent / Notebook LM —— 复杂问题深度推理，把信息变成判断。</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">03</div>
+                <h4>执行</h4>
+                <div class="step-desc">能让 AI 干的我不干 —— Claude Code + Codex 双核，是 AGI 级别的通用 Agent。</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">04</div>
+                <h4>沉淀复用</h4>
+                <div class="step-desc">Obsidian + iCloud 本地化。数据归属于你，不归属于任何 AI 公司。</div>
+            </div>
+        </div>
+        <div class="flywheel-note reveal">▽ ▽ ▽   闭环之后，才是飞轮   ▽ ▽ ▽</div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 09 — 第一步：信息源
+========================================================= -->
+<section class="slide" data-title="信息源">
+    <div class="chrome"><span class="mark">02-01 · INPUT</span><span>08 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">STEP 01 · YOUR DIET</div>
+        <h2 class="h-title reveal">信息就像你吃的东西</h2>
+        <p class="h-sub reveal">国内是<b class="accent-2">二手信息</b>居多；作为有追求的获取者，应该去看 X、看 YouTube。</p>
+        <div class="two-col">
+            <div class="col reveal">
+                <h3>国内</h3>
+                <ul>
+                    <li><b>生财有术</b>：超级标 + 精华帖 + AI 亦仁问答</li>
+                    <li><b>微信群聊</b>：导出 → PDF → Notebook LM 做深度分析（曾让 Notebook 出的课程框架秒杀团队）</li>
+                    <li><b>公众号</b>：导出 PDF 灌 Notebook，研究透一个人 → 思维方式变成你的</li>
+                    <li><b>视频 / 电子书</b>：Get 笔记 + 百度网盘 AI 笔记</li>
+                </ul>
+            </div>
+            <div class="col reveal">
+                <h3>海外 + 专属数据</h3>
+                <ul>
+                    <li><b>X</b>：沉浸式翻译 / 自己 API / Grok 调研</li>
+                    <li><b>YouTube</b>：Lex Fridman 等顶级访谈逐字稿全部能导入 Notebook</li>
+                    <li><b>海外社区</b>：BlackHatWorld / IndieHackers / HN / Reddit</li>
+                    <li><b class="accent-2">最独家 → 专属数据</b>：微信/飞书聊天 + 推特点赞 + Chrome 浏览 + AI 问答 全沉淀进 Obsidian<span class="mini">AI 亦仁回答好，核心就是 9 年 150 万字的专属知识库。</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 10 — 第二步：思考决策
+========================================================= -->
+<section class="slide" data-title="思考决策">
+    <div class="chrome"><span class="mark">02-02 · THINK</span><span>09 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">STEP 02 · DECISION SUPPORT</div>
+        <h2 class="h-title reveal">有了信息不等于能想清楚</h2>
+        <p class="h-sub reveal">决策需要辅助 —— 不同 AI 有不同分工，把它们当成你的专家团。</p>
+        <div class="tools-grid">
+            <div class="tool reveal">
+                <div class="tag">FOR REALTIME</div>
+                <h3>Grok</h3>
+                <div class="role">推特平台最新信息</div>
+                <div class="desc">"Claude 如何防止被封" —— Grok 帮你扫遍 X 最新分享。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">FOR DEEP REASONING</div>
+                <h3>ChatGPT Pro</h3>
+                <div class="role">复杂问题深度推理</div>
+                <div class="desc">公司全员周报丢给 Pro：哪些任务可以 Agent 化？一次产出几十个工作流。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">FOR REAL DATA</div>
+                <h3>大模型 Agent 模式</h3>
+                <div class="role">真实浏览器调研</div>
+                <div class="desc">不是推理，是真实数据 —— ChatGPT/Gemini/Manus 都有。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">FOR DIALOGUE</div>
+                <h3>Notebook LM</h3>
+                <div class="role">把别人的大脑导进来</div>
+                <div class="desc">把投资高手过去几年公众号灌进去，甚至能推理他的仓位。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">REAL CASE A</div>
+                <h3>员工周报 → 几十个工作流</h3>
+                <div class="role">让 Pro 找出"哪里能 Agent 化"</div>
+                <div class="desc">有专属数据 + Pro 模型 = 降本增效的最强组合。</div>
+            </div>
+            <div class="tool reveal">
+                <div class="tag">REAL CASE B</div>
+                <h3>AI 产出超级标</h3>
+                <div class="role">方向 → 调研 → 落地 SOP → 1000 万</div>
+                <div class="desc">这是典型的"用 AI 做决策"的场景。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 11 — 第三步：执行（Claude Code + Codex 双核）
+========================================================= -->
+<section class="slide" data-title="执行">
+    <div class="chrome"><span class="mark">02-03 · EXECUTE</span><span>10 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">STEP 03 · LET AI DO IT</div>
+        <h2 class="h-title reveal">能让 AI 干的，我不干</h2>
+        <p class="h-sub reveal">核心工具就两个：<b class="accent">Claude Code</b> + <b class="accent">Codex</b> —— 它们已经是 AGI 级别的通用 Agent，不只是编程。</p>
+        <div class="cases">
+            <div class="case reveal">
+                <div class="case-tag">CASE 01 · 几百张发票</div>
+                <h4>邮箱里几百封带发票邮件，Codex 一键搞定</h4>
+                <p>"帮我下载邮箱里这几百封发票" → Codex 吭哧吭哧下载 + OCR 识别 + 整理成表格。以前极其耗时，现在一键交给财务。</p>
+            </div>
+            <div class="case reveal">
+                <div class="case-tag">CASE 02 · 微信 H5 抓包</div>
+                <h4>一百多份医院诊断数据，只在微信 H5 里</h4>
+                <p>没有网页版的微信客户端数据本来很难拿。Codex 直接帮我抓包 —— 我不知道它怎么实现的，反正全下来了。</p>
+            </div>
+        </div>
+        <div class="dual-tools reveal" style="justify-content: center; margin-top: 1.5rem;">
+            <span class="pill">Claude Opus 4.6</span>
+            <span class="pill">GPT-5.4</span>
+            <span class="pill">Opus 4.7 本周出</span>
+            <span style="font-family: var(--mono); font-size: var(--small-size); color: var(--muted); align-self: center;">→ 学 AI 编程不需要代码基础，会有学习成本，但比你想象的低</span>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 12 — 第四步：沉淀复用 + 安全提醒
+========================================================= -->
+<section class="slide opener" data-title="沉淀复用">
+    <div class="chrome"><span class="mark">02-04 · PRESERVE</span><span>11 / 20</span></div>
+    <div class="slide-content">
+        <div class="big-num reveal">// 沉淀复用</div>
+        <h2 class="reveal">数据要归属于你，<br>不归属于任何 AI 公司</h2>
+        <p class="lead reveal">Obsidian 做本地笔记，iCloud 做备份。所有数据沉淀到本地，ChatGPT/Claude/Codex 都可以通过类似方式让数据存在自己本地。</p>
+        <div class="three-cards">
+            <div class="c reveal" style="border-color: var(--accent-3);">
+                <div class="n" style="color: var(--accent-3);">⚠ 安全提醒</div>
+                <div class="t">不要和 Claude 产生感情</div>
+                <div class="d">对中国人来说 Claude 随时有封号风险，不管措施做得多好都有概率。亦仁本人被封过差不多 10 个号。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">本地化</div>
+                <div class="t">Obsidian + iCloud</div>
+                <div class="d">所有想法、信息、事项在本地。一个工作台，所有数据一站式。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">真实演示</div>
+                <div class="t">这场分享框架就这么做出来</div>
+                <div class="d">所有知识库导入 Obsidian → 让 Claude 在里面产出基础框架 → 用了差不多一周。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 13 — PART 03 扉页
+========================================================= -->
+<section class="slide part" data-title="PART 03">
+    <div class="chrome"><span class="mark">PART 03</span><span>12 / 20</span></div>
+    <div class="slide-content">
+        <div class="part-num reveal">PART · 03</div>
+        <h2 class="reveal">三个心法 & 人机合一</h2>
+        <div class="part-en reveal">PRINCIPLES · HUMAN-AI FUSION</div>
+        <p class="part-lead reveal">"AI 不是学出来的，是<b class="accent">用</b>出来的。"<br>四步框架背后，还有三条更底层的心法 —— 以及一个让你"强得可怕"的状态。</p>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 14 — 三个心法
+========================================================= -->
+<section class="slide" data-title="三个心法">
+    <div class="chrome"><span class="mark">03 · MINDSETS</span><span>13 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">THREE PRINCIPLES</div>
+        <h2 class="h-title reveal">先用 → 深入用 → 提炼自己的数据</h2>
+        <div class="three-cards">
+            <div class="c reveal">
+                <div class="n">MINDSET 01</div>
+                <div class="t">先用起来</div>
+                <div class="d">20 刀/月的大模型，每天用，一半时间用 AI 就到位了。<br><br><b class="accent-2">AI 时代的核心是术不是道</b> —— 看见别人怎么用 Claude Code，看见的那一刻就学会了。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">MINDSET 02</div>
+                <div class="t">深入用 · 用顶级模型</div>
+                <div class="d">Opus 4.6、GPT-5.4 —— 顶级模型和一般模型是输赢在起点上的差别。<br><br><b class="accent-2">建议拿出收入的 10% 投资 AI</b>。再穷不能穷模型，再省不能省 Token。</div>
+            </div>
+            <div class="c reveal">
+                <div class="n">MINDSET 03</div>
+                <div class="t">提炼自己的数据</div>
+                <div class="d">立刻可试：把你所有对话给 AI，让它回答"你发现了但我还没意识到、一旦意识到会对人生产生巨大改变的点"。<br><br>你会惊讶于 AI 对你的洞察深度。</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 15 — 人机合一三阶段
+========================================================= -->
+<section class="slide" data-title="人机合一">
+    <div class="chrome"><span class="mark">03 · FUSION</span><span>14 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">HUMAN-AI FUSION</div>
+        <h2 class="h-title reveal">三个阶段 —— 直到"强得可怕"</h2>
+        <p class="h-sub reveal">到了第三阶段，唯一能限制你的就是<b class="accent">你的想象力</b>。</p>
+        <div class="stages">
+            <div class="stage reveal">
+                <div class="roman">PHASE I</div>
+                <div class="formula">人 + AI 协作</div>
+                <h4>你主导<br>AI 辅助</h4>
+                <p>大多数人还在这里，把 AI 当作一个聪明的助手。</p>
+            </div>
+            <div class="stage reveal">
+                <div class="roman">PHASE II</div>
+                <div class="formula">AI 帮你干活</div>
+                <h4>你决策<br>AI 执行</h4>
+                <p>"能让 Claude Code 干的，我不干。" 把执行权交出去。</p>
+            </div>
+            <div class="stage reveal">
+                <div class="roman">PHASE III</div>
+                <div class="formula">人机合一</div>
+                <h4>判断决策在你<br>AI 帮你干一切</h4>
+                <p>强烈的自信，觉得自己强得可怕 —— 我觉得这是最好的状态。</p>
+            </div>
+        </div>
+        <p class="reveal" style="margin-top: 1.5em; text-align: center; font-family: var(--serif); font-size: var(--body-size); color: var(--accent-2); font-weight: 700;">"AI 编程比打游戏还上瘾，正反馈太强。"</p>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 16 — PART 04 扉 + 八大方向
+========================================================= -->
+<section class="slide" data-title="八大方向">
+    <div class="chrome"><span class="mark">PART 04 · 2026</span><span>15 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">PART 04 · EIGHT DIRECTIONS</div>
+        <h2 class="h-title reveal">2026 八大方向 —— 一个底座 + 八向 + 三趋势</h2>
+        <div class="foundation reveal">
+            <b>底座 · AI 编程</b> —— AI 时代的英语。不懂 AI 编程，就是 AI 时代的文盲。但完全不需要代码基础。
+        </div>
+        <div class="eight-grid">
+            <div class="dir reveal"><div class="num">01</div><div class="name">AI 编程</div><div class="tag">底座 · 也是赛道本身（培训/MCN/自媒体爆发）</div></div>
+            <div class="dir reveal"><div class="num">02</div><div class="name">AI 视频</div><div class="tag">Sora 2.0 后远远被低估 → AI 电影、漫剧、脱口秀</div></div>
+            <div class="dir reveal"><div class="num">03</div><div class="name">AI 企业服务</div><div class="tag">2026 确定性最强 · 千亿市场 · 生财认证服务商</div></div>
+            <div class="dir reveal"><div class="num">04</div><div class="name">AI 教育培训</div><div class="tag">最大增量人群 —— 走在前面的就是你</div></div>
+            <div class="dir reveal"><div class="num">05</div><div class="name">垂直小号</div><div class="tag">细分领域 · 算法红利 · 转化率高（保险垂直小号一年赚几千万）</div></div>
+            <div class="dir reveal"><div class="num">06</div><div class="name">垂直小店</div><div class="tag">B站好物 · 小红书电商 · 视频号 · 抖音 CPS</div></div>
+            <div class="dir reveal"><div class="num">07</div><div class="name">全球化出海</div><div class="tag">价格是国内 7 倍 · 圈友日入 10 万美金</div></div>
+            <div class="dir reveal"><div class="num">08</div><div class="name">OPC 一人公司</div><div class="tag">一两个人借助 AI 一年赚一两百万 · 北上深杭联合办公</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 17 — 三大趋势 + 终局
+========================================================= -->
+<section class="slide" data-title="三大趋势">
+    <div class="chrome"><span class="mark">04 · TRENDS</span><span>16 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">THREE MEGA TRENDS</div>
+        <h2 class="h-title reveal">八大方向背后 —— 三个大趋势</h2>
+        <div class="trends">
+            <div class="trend reveal">
+                <div class="symbol">⊕</div>
+                <h4>全球化</h4>
+                <p>金伟讲的"生而全球化" —— 一上来就为全球做，海外做好再回国内。</p>
+            </div>
+            <div class="trend reveal">
+                <div class="symbol">⊙</div>
+                <h4>OPC 化</h4>
+                <p>一个人干一个团队的活。北京/深圳/杭州都给了 OPC 政策。</p>
+            </div>
+            <div class="trend reveal">
+                <div class="symbol">⊛</div>
+                <h4>Agent 化</h4>
+                <p>Claude Code / Codex 通用 Agent；情报 / 选品 / 定制图片 —— 大量创业机会。</p>
+            </div>
+        </div>
+        <div class="endgame reveal">
+            ⬇ <br>终局画面 —— 一个人 · 用 Agent · 做一家面向全球的公司 —— 三个风口全部踩到
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 18 — PART 05 生财四站
+========================================================= -->
+<section class="slide" data-title="生财四站">
+    <div class="chrome"><span class="mark">PART 05 · SHENGCAI</span><span>17 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">PART 05 · YEAR-10 ROADMAP</div>
+        <h2 class="h-title reveal">生财第十年 —— 四道门槛 · 四个大站</h2>
+        <p class="h-sub reveal">今年口号：<b class="accent">用好 AI，跟上时代</b>。副题：想法致富的时代来了 —— 前提是用好 AI。</p>
+        <div class="framework">
+            <div class="step reveal">
+                <div class="step-n">站 01</div>
+                <h4>找到好方向</h4>
+                <div class="step-desc">超级标 (30+/年) · 项目库 (160+) · 精华帖 (77000+ 圈友真金白银跑出的案例)</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">站 02</div>
+                <h4>学会 AI + 带你做项目</h4>
+                <div class="step-desc">AI 超级大航海 (5/11 月) + AI 项目航海 (10-15 选题/2-3 月) · 21 天小闭环</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">站 03</div>
+                <h4>解决路上的卡点</h4>
+                <div class="step-desc">AI 亦仁数字分身 (你怼它它不会顺着你) · 线下 AI 项目沙龙</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-n">站 04</div>
+                <h4>放大你的业务</h4>
+                <div class="step-desc">港湾计划 · 联合办公 · 深海圈 · AI 航海家俱乐部（续费率 73%）</div>
+            </div>
+        </div>
+        <p class="reveal" style="margin-top: 1.2em; text-align: center; font-family: var(--serif); font-size: var(--body-size); color: var(--accent-2);">本质 —— 共建一个 <b class="accent">OPC 超级联盟</b>：散是满天星，聚是一团火。</p>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 19 — 尾声 · 四心法
+========================================================= -->
+<section class="slide" data-title="尾声四心法">
+    <div class="chrome"><span class="mark">FINALE · MINDSETS</span><span>18 / 20</span></div>
+    <div class="slide-content">
+        <div class="eyebrow reveal">FINAL · FOUR PRINCIPLES</div>
+        <h2 class="h-title reveal">给所有人的四个心法</h2>
+        <div class="mindsets cols-2">
+            <div class="mind reveal">
+                <div class="label">PRINCIPLE 01 · FOCUS</div>
+                <h4>聚焦</h4>
+                <p>不需要抓很多，一个深耕下去就够了。一个项目跑通闭环 (几百几千)，绝对不要轻易换 —— 任何一个项目都有机会赚到百万级以上。</p>
+            </div>
+            <div class="mind reveal">
+                <div class="label">PRINCIPLE 02 · OUTSIDER</div>
+                <h4>边缘人理论</h4>
+                <p>没项目、不懂 AI、没赚很多钱 —— 不要焦虑，这反而是优势。有项目的人没时间学 AI；每次大机会来的时候，往往是边缘人先进场。</p>
+            </div>
+            <div class="mind reveal">
+                <div class="label">PRINCIPLE 03 · ACT</div>
+                <h4>先干再说</h4>
+                <p>"先上课、先学习、有体系才开始" —— 这是做题家思维。先躬身入局，摸到枪。Connect the Dots —— 你做的每件事最后都会在意想不到的点上呈现。</p>
+            </div>
+            <div class="mind reveal">
+                <div class="label">PRINCIPLE 04 · CIRCLE</div>
+                <h4>换圈就是改命</h4>
+                <p>命运改变 ← 行动改变 ← 认知改变 ← 视野改变。99.99% 的人都是看见才相信。每个圈子背后都是一群思维方式的合集 —— 投资自己的脑子，是最重要的投资。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     SLIDE 20 — 金句墙 + 收尾
+========================================================= -->
+<section class="slide finale" data-title="收尾">
+    <div class="chrome"><span class="mark">FINALE · BLACK HORSE</span><span>19 / 20</span></div>
+    <div class="slide-content">
+        <div class="pre reveal">END · 2026 / 04 / 15</div>
+        <h1 class="reveal">乾坤未定<br>你我皆是黑马</h1>
+        <p class="post reveal">"以前我们受限于资源、受限于能力。<br>现在 AI 抹平了一切差距 —— 一切重新回到了起跑线。"</p>
+        <div class="signature reveal">
+            一个人 + AI + 一群人 · 走得又快又远
+        </div>
+    </div>
+</section>
+
+<!-- 导航 + 提示 -->
+<nav class="nav-dots" aria-label="slide navigation"></nav>
+<div class="keyboard-hint">← / → · SPACE · SCROLL</div>
+
+<script>
+// ============================================================
+// 导航 + active 同步 + 键盘
+// ============================================================
+const slides = Array.from(document.querySelectorAll('.slide'));
+const dots = document.querySelector('.nav-dots');
+
+slides.forEach((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.title = s.dataset.title || ('Slide ' + (i+1));
+    a.addEventListener('click', (e) => { e.preventDefault(); s.scrollIntoView({ behavior: 'smooth' }); });
+    dots.appendChild(a);
+});
+
+const dotEls = Array.from(dots.children);
+let currentIdx = 0;
+
+const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting && e.intersectionRatio > 0.5) {
+            const idx = slides.indexOf(e.target);
+            slides.forEach(s => s.classList.remove('active'));
+            e.target.classList.add('active');
+            dotEls.forEach(d => d.classList.remove('active'));
+            if (dotEls[idx]) dotEls[idx].classList.add('active');
+            currentIdx = idx;
+        }
+    });
+}, { threshold: [0.5] });
+
+slides.forEach(s => io.observe(s));
+if (slides[0]) slides[0].classList.add('active');
+if (dotEls[0]) dotEls[0].classList.add('active');
+
+// 键盘
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        const next = slides[Math.min(currentIdx + 1, slides.length - 1)];
+        if (next) next.scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        const prev = slides[Math.max(currentIdx - 1, 0)];
+        if (prev) prev.scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'Home') {
+        slides[0].scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'End') {
+        slides[slides.length - 1].scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+</body>
+</html>
