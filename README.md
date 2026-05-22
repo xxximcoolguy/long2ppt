@@ -111,6 +111,60 @@ $env:LONG2PPT_OUTPUT = "$env:USERPROFILE\Documents\slides"
 
 ---
 
+## 🧩 完整体验 · 前置能力说明
+
+**核心功能零依赖**：粘贴文本 / URL / 主题自创 → 生成 HTML 演示文稿，clone 下来就能用。
+进阶能力各有前置，下表说明「想要 X，需要装 Y；没 Y 时退回什么」：
+
+| 想要的体验 | 前置条件 | 缺失时的 fallback |
+|---|---|---|
+| 生成 HTML 演示文稿（核心） | 无 | —— |
+| 进阶模式 · 浏览器风格预览页 | Python 3 ＋ 任意桌面浏览器 ＋ 图形界面 | 退回快速模式，由 AI 按场景推荐风格 |
+| 本地 PDF / DOCX / EPUB 文件输入 | Python 3 ＋ `requirements.txt` 依赖 | 改用「粘贴文本 / URL」输入 |
+| 微信公众号 URL 抓取 | chrome-devtools MCP 或 `baoyu-url-to-markdown`（均基于 Chrome CDP） | defuddle 兜底；仍失败则改用「粘贴正文」模式 |
+| 生成后自动截图验证排版 | chrome-devtools MCP | AI 提示你自己用浏览器打开 HTML 检查 |
+| 导出 PPTX | Playwright ＋ python-pptx | 浏览器 `Ctrl+P` 另存为 PDF |
+
+### ⚠️ 常见误解：风格预览页 ≠ chrome-devtools
+
+进阶模式的「浏览器风格预览页」由 `scripts/style_preview.py` 提供：
+它用 **Python 标准库**起一个本地小服务（`127.0.0.1:随机端口`），再调
+**系统默认浏览器**打开预览页 —— **完全不依赖 chrome-devtools MCP**，
+Edge / Chrome / Firefox 任意一个浏览器都能用。
+
+chrome-devtools MCP 只参与两件事：① 公众号抓取 ② 生成后自动截图验证。
+两者都有 fallback，**缺了它，skill 的核心生成流程照常工作**。
+
+### 风格预览页打不开？按这个顺序排查
+
+1. **看终端输出**：脚本一定会打印一行 `http://127.0.0.1:xxxxx/templates/preview.html?...`
+   —— 浏览器没自动弹出时，**手动复制这行地址**到浏览器打开即可。
+2. **确认 Python 可用**：终端跑 `python --version`（或 `python3 --version`）能出版本号。
+3. **无图形界面**（纯 SSH / 服务器环境）：预览页无法用，直接走**快速模式**——
+   告诉 AI 你的场景（汇报 / 读书 / 社媒 / 演讲），让它替你选风格。
+4. **想主动跳过预览页**：进阶用户可在对话里直接点名 ——「我要 Tufte 风」
+   「用 Bass 几何海报风」，AI 会绕过预览页直接加载对应大师美学。
+
+### 推荐配置（完整体验）
+
+- **Python 3.8+** —— 解锁风格预览页、本地文件输入、PPTX 导出
+- **桌面浏览器（任一）** —— 风格预览页需要，无需特定品牌
+- **chrome-devtools MCP（可选）** —— 让 AI 能抓公众号、自动验证排版
+
+安装 chrome-devtools MCP（需本机已装 Node.js 与 Chrome）：
+
+```bash
+# 装到当前项目
+claude mcp add chrome-devtools npx chrome-devtools-mcp@latest
+
+# 或装到用户级 —— 所有项目都能用
+claude mcp add -s user chrome-devtools npx chrome-devtools-mcp@latest
+```
+
+添加后重启 Claude Code 生效。
+
+---
+
 ## 📖 使用
 
 安装后在 Claude Code 里用**自然语言**触发即可 —— **Windows 与 macOS 用法完全一致，仅文件路径写法不同**。
