@@ -317,9 +317,14 @@ python scripts/style_preview.py --output /tmp/x.json --title "验证" --words 25
 
 服务超过 `--timeout` 秒没收到用户选择 → 退出码 1。在脚本日志里显示 "exit code 1 failed" 但**这是预期 fallback 行为**，不是 bug。SKILL.md Phase 3 Q1 进阶模式分支已经处理：退出码 1 = fallback 回文字预设选。
 
-### 4. Windows GBK 终端中文乱码
+### 4. Windows GBK 终端编码 —— style_preview.py 崩溃 bug ✅ 已修复（2026-05-22 v0.3 续）
 
-`python style_preview.py` 输出的中文在 Windows GBK 终端可能乱码（如 `▽` 显示为 `⏱`）。**只影响调试可读性，功能正常**。船长直接看浏览器或 STDOUT 重定向到文件用 UTF-8 读即可。
+**原判断是错的**（曾写「只影响调试可读性，功能正常」）。实情：`style_preview.py` 收到用户选择、写完 JSON 后 `print('✓ ...')`，`✓`(U+2713) 无法被 Windows GBK 终端编码 → `UnicodeEncodeError` → 脚本崩溃、退出码 1 → SKILL.md 旧逻辑把 exit 1 误判为「用户取消」→ 丢掉用户已经选好的风格。**等于进阶模式在 Windows 上整个是坏的。**
+
+**修复**：
+- `style_preview.py` 开头强制 `sys.stdout/stderr.reconfigure(encoding='utf-8')`，并把 `✓`/`⏱️` 换成 ASCII（双保险）。
+- SKILL.md Phase 3 Q1 退出码逻辑改为「优先看 style_config.json 是否生成，不只信退出码」。
+- 教训：「只影响可读性、功能正常」这种乐观判断必须实跑验证，不能拍脑袋写进 STATUS。
 
 ### 5. demo-decks/<master>/full.html 体积
 

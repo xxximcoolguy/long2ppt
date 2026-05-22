@@ -209,12 +209,13 @@ python scripts/style_preview.py \
     --timeout 600
 ```
 
-**等待 server 退出，按 exit code 分支：**
-| exit code | 含义 | 下一步 |
-|-----------|------|--------|
-| 0 | 用户成功选定 | 读 `style_config.json` 取 `master_file` 字段，继续 Q2 |
-| 1 | 超时 / 用户取消 | **fallback 回对话模式**（列 15 预设文字选） |
-| 2 | 环境错误（找不到 html/python 等）| 报错给用户，建议升级 / 回退快速模式 |
+**等待 server 退出。判定优先看 `style_config.json` 是否已生成 —— 不要只信退出码**（脚本可能写完 JSON 后因终端编码等原因非 0 退出）：
+
+| 判定（按顺序） | 含义 | 下一步 |
+|----------------|------|--------|
+| `style_config.json` 存在且能解析出 `master` 字段 | 用户已成功选定 | 读 `master_file` 字段继续 Q2 —— **无视退出码** |
+| 文件不存在 · exit code 1 | 超时 / 用户取消 | **fallback 回对话模式**（列预设文字选） |
+| 文件不存在 · exit code 2 | 环境错误（找不到 html/python 等）| 报错给用户，建议升级 / 回退快速模式 |
 
 **收到的 style_config.json 结构：**
 ```json

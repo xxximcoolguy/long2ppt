@@ -38,6 +38,16 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Optional
 from urllib.parse import urlencode
 
+# Windows GBK 终端无法编码 ✓ ⏱ 等非 GBK 字符 —— 强制 stdout/stderr 走 UTF-8。
+# 否则成功提示里的 print 会抛 UnicodeEncodeError 让脚本崩溃、误退出码 1，
+# SKILL.md 会把它当成"用户取消"，丢掉用户已经写入 JSON 的风格选择。
+# line_buffering=True：管道下也按行刷新，启动横幅(含 URL)立即可见，不被块缓冲卡住。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', line_buffering=True)
+    except Exception:
+        pass
+
 
 # ============ STATE ============
 
@@ -64,11 +74,12 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/select':
             length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(length).decode('utf-8')
             try:
+                body = self.rfile.read(length).decode('utf-8')
                 payload = json.loads(body)
-            except json.JSONDecodeError as e:
-                self._json_response(400, {'error': f'invalid json: {e}'})
+            except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                # 请求体非 UTF-8 或非合法 JSON —— 干净地回 400, 不让 handler 崩
+                self._json_response(400, {'error': f'invalid request body: {e}'})
                 return
 
             try:
@@ -178,7 +189,7 @@ def main():
         while time.time() < deadline:
             if Handler.state.received:
                 print()
-                print('✓ 收到选择，写入到', args.output)
+                print('[OK] 收到选择，写入到', args.output)
                 print(json.dumps(Handler.state.payload, ensure_ascii=False, indent=2))
                 server.shutdown()
                 sys.exit(0)
@@ -188,7 +199,7 @@ def main():
         server.shutdown()
         sys.exit(1)
 
-    print(f'\n⏱️ 超时（{args.timeout}s 无选择） · fallback 回对话模式',
+    print(f'\n[TIMEOUT] 超时（{args.timeout}s 无选择） · fallback 回对话模式',
           file=sys.stderr)
     server.shutdown()
     sys.exit(1)
