@@ -106,17 +106,49 @@ python scripts/extract.py <input> <out>/source.md
 提出 **3 个候选 + 自定义输入**（AskUserQuestion, header: `Title`）：
 - A 抽象提炼 / B 直白描述 / C 金句式
 
-### 2.1 生成大纲
-按主题/逻辑骨架（不是章节顺序）压缩。**每张 slide 有明确观点 + 论据**。
+**标题三检**（每个候选必须标注命中项，命中 ≥ 2 才提交给用户；全 0 命中重写）：
+- **冲突感** — 含张力/反差/矛盾词，例：「克制是最大的奢侈」「慢就是快」
+- **具体感** — 含数字/专有名词/强动词 ≥ 1，例：「7 年从亏损到 10 亿」「让 1 万人离开舒适区」
+- **金句感** — ≤ 14 字，可独立成立、可被单独引用
 
+输出示例：`A.「克制是最大的奢侈」[冲突✓ 金句✓] / B.「Less is More 设计哲学」[具体✓ 金句✓] / C....`
+
+### 2.05 骨架卡（拦截逻辑漂移，必经）
+
+通读后**先不展开大纲**，先输出骨架卡让用户确认主线抓对了：
+
+```
+核心主张：[1 句话，≤ 30 字]
+支撑论点：
+  1. [论点 A] ← 论据：[a1] [a2] [a3]
+  2. [论点 B] ← 论据：[b1] [b2]
+  3. [论点 C] ← 论据：[c1] [c2] [c3]
+（3-5 个论点最佳，>5 个说明没抓主线，回去再读）
+```
+
+**等用户确认骨架卡，才进 2.1 展开大纲。** 用户说"主线不对/漏了 X" → 回 Phase 2 重抽，不要在大纲阶段硬补。
+
+### 2.1 生成大纲
+按 2.05 骨架卡展开（**不是章节顺序、不照搬目录**）。每张 slide 必须有 1 个明确观点 + 1-4 个论据。
+
+- **字数预算**（必查）：按版式查 [layouts.md 字数预算表](layouts.md#字数预算表phase-21-必查)
+  - 超上限 → 拆 2 页 或 换更密版式
+  - 不足下限 → 合并 或 换稀疏版式（`.aphorism` / `.chapter-plate`）
+  - 双语版字数 × 1.7 后再比对预算
 - **图片**：从 meta.json 读，分配到合适版式（image-hero / image-split / image-grid / part-image）
-- **金句**：扫描全文找 3-12 条 → 3 条最强成 `.aphorism` 单页 / 8-12 条进 `.maxims` 墙
+- **金句五诊**（命中 ≥ 3 才入选）：
+  - **独立性** — 脱离上下文也能成立
+  - **反常识** — 违背直觉的洞见
+  - **高密度** — < 25 字浓缩一个完整观点
+  - **韵律** — 对仗 / 排比 / 押韵 / 反复
+  - **普适** — 不依赖特定领域黑话
+  - 入选后：3 条最强成 `.aphorism` 单页 / 8-12 条进 `.maxims` 墙；命中 < 3 的句子一律不放金句版式
 - **双语**：按 dominant_lang 处理
 
 大纲模板见 [layouts.md](layouts.md) 末尾。
 
 ### 2.2 用户确认大纲
-汇报总张数 / 章节划分 / 关键节点。**等用户确认才进 Phase 3**。
+汇报总张数 / 章节划分 / 关键节点 / 字数预算自检结果（"X 页全部在预算内"或"X 页需要调整"）。**等用户确认才进 Phase 3**。
 
 ---
 
@@ -124,7 +156,101 @@ python scripts/extract.py <input> <out>/source.md
 
 一次 AskUserQuestion 最多 4 问，分两批。
 
-**第一批（必问）：** Q1 风格（15 套预设见 [presets.md](presets.md)）· Q2 配色（默认 / 预设色盘 / 自定义 HEX）· Q3 大纲详略（12/18/28/40 张）
+### Q0 · 使用模式分流（必问 · 第一个问题 · 不可跳过）
+
+**问句**："选一下使用模式："
+- 🚀 **快速模式**（推荐 · 适合首次/不会做 PPT 的用户）：我说场景，AI 帮我选风格
+- 🎨 **进阶模式**（懂设计或想自己挑/二次以上使用）：我自己挑预设/混搭
+
+**判定规则：**
+- 用户在 Phase 0-2 完全没提及风格关键词 → **默认推快速模式**，不要硬推进阶
+- 用户提到「我想要 Carson 风 / Tufte 风 / Brody 风 / Wabi Sabi 风」等任何具体大师/美学词 → **直接进进阶模式**，跳过本 Q0
+- 用户说「随便」「你看着办」「都行」 → **默认快速模式 + 后台推 Rams**（最稳）
+
+---
+
+### Q1 · 风格选择（分支执行）
+
+#### 🚀 Q1·快速模式（场景化推荐）
+
+**Q1a 场景**（一次 AskUserQuestion · 4 选 1）：
+- 🏢 工作汇报 / 演示 / 公司内部
+- 📖 读书笔记 / 文献综述 / 知识分享
+- 📱 朋友圈分享 / 社媒爆款 / 营销文案
+- 🎤 演讲 Keynote / TED / 个人故事
+
+**Q1b 推荐 + 验收**（按 Q1a 结果查 [routing.md 场景→大师推荐路由](routing.md#场景--大师推荐路由phase-3-q1-快速模式必查)）：
+
+1. 取**主推大师**，从 `routing.md` 一句话理由库取对应文案
+2. 输出格式：「AI 给你推荐这套风格：『[一句话理由]』，要试试吗？」
+3. **绝不暴露大师名字给小白用户**（Carson/Brody/Crouwel 等术语对小白零信息量）
+4. 用户回应：
+   - 「就用这个」/「好」/「可以」 → 后台加载对应 `aesthetics/<name>.md`，继续 Q2
+   - 「换一个看看」 → 给次推，重复步骤 1-3
+   - 「再换」 → 给备选
+   - 连续 3 次说换 → 提示「你可能更适合进阶模式，要不要自己挑？」转进阶
+   - 「我想要 X 感觉」（用户自己描述） → 当前阶段（M1）转进阶模式；M3 完成后调用混搭引擎
+
+5. **中国风互斥拦截**：用户场景为「读书笔记」且推到 Hara 时，**先追问偏哪一种东方**（见 [routing.md 中国风互斥提示](routing.md#中国风互斥提示)）
+
+6. **数据覆盖规则**：原文含 > 30% 数据/表格/图表 → **强制覆盖推 Tufte**（不论用户场景选什么），并说明"你这份内容有大量数据，Data-Ink 风格最不浪费信息"
+
+#### 🎨 Q1·进阶模式（M2 上线 · 浏览器预览页）
+
+调用 `scripts/style_preview.py` 起本地服务，浏览器自动打开 `templates/preview.html` 让用户在网页里看 14 大师卡片 + 三张代表截图。
+
+**调用命令**（Claude 执行 Bash）：
+```bash
+python scripts/style_preview.py \
+    --title "<Phase 2.0 用户确认的标题>" \
+    --words <source.md 总字数> \
+    --scene <Phase 2 检测到的场景 · 可省略> \
+    --output <work_dir>/style_config.json \
+    --timeout 600
+```
+
+**等待 server 退出，按 exit code 分支：**
+| exit code | 含义 | 下一步 |
+|-----------|------|--------|
+| 0 | 用户成功选定 | 读 `style_config.json` 取 `master_file` 字段，继续 Q2 |
+| 1 | 超时 / 用户取消 | **fallback 回对话模式**（列 15 预设文字选） |
+| 2 | 环境错误（找不到 html/python 等）| 报错给用户，建议升级 / 回退快速模式 |
+
+**收到的 style_config.json 结构：**
+```json
+{
+  "master": "rams",
+  "master_file": "aesthetics/rams.md",
+  "display_name": "克制专业",
+  "scene": "business",
+  "china_mutex": false,
+  "mutex_option": null,
+  "timestamp": "2026-05-21T10:23:00Z"
+}
+```
+
+**特殊处理：**
+- 收到 `china_mutex: true` → 用户已在预览页内确认了东方派别（`mutex_option` 字段），不再追问
+- 进阶模式用户也可以直接在对话里说「我要 Carson 风」「我要 Tufte 风」**绕过预览页**，直接加载对应 `aesthetics/<name>.md`
+- 用户没浏览器环境 / 无桌面 GUI → 自动 fallback 回快速模式或文字预设选
+- M3 混搭引擎上线后，`style_config.json` 会新增 `mix: {...}` 字段（见 [mix-engine.md](mix-engine.md)，M3 规划）
+
+---
+
+### Q2 / Q3（保持原逻辑，仅次序提示）
+
+**第一批问完 Q0+Q1 后继续：** Q2 配色（默认 / 预设色盘 / 自定义 HEX）· Q3 大纲详略（见下表）
+
+**Q3 详略 → 内容取舍映射**（用户选档位后按表砍/留，不允许"想加什么加什么"）：
+
+| 档位 | 必保 | 可选 | 砍掉 |
+|------|------|------|------|
+| **12 张 · 极简** | 封面 + 终章 + 3-5 核心观点 + 2-3 金句 | — | 章节扉 / 案例 / 物料网格 / 阶段递进 |
+| **18 张 · 主线** | + 章节扉（2-3）+ 1 个核心案例 | 局部图集 / 信条卡 | 物料网格 / 阶段递进 / 对话双栏 |
+| **28 张 · 完整** | + 每章 2-3 页论据 + 2-3 案例 | 信条卡 / 对话双栏 / 阶段递进 | — |
+| **40 张 · 详尽** | + 每个论据独立成页 + 物料网格 + 阶段递进 | 全图主视觉 / 全图章节扉 / 多图集 | — |
+
+回到 Phase 2.1 按所选档位重新校准张数（差超过 ±3 张 → 调整 2.05 骨架卡的论点粒度，不要靠"硬塞水页"或"硬砍论据"凑数）。
 
 **第二批（按需）：** Q4 字号尺度 / 版式比例 / 主标题字体 / 动画强度 —— **默认全跟风格走，用户主动要更多自定义才问**
 
@@ -195,9 +321,12 @@ use_base64 = len(images) <= 5 and total_bytes <= 2 * 1024 * 1024
 - ❌ 不用泛 AI 配色（紫渐变、Inter/Arial 系）
 - ❌ 不用旧 `.slide` `.chrome` `.reveal` 类名，用 `.frame` `.runner` `.unfold`
 - ❌ 模式 D 不跳过草稿审核
+- ❌ **快速模式下绝不暴露大师名字给用户**（Carson/Brody/Tufte 等术语对小白零信息量；只用一句话感受性描述）
+- ❌ **小白用户禁止用 AskUserQuestion 直接列 15 个预设让他选** —— 这是回到盲选老路
 - ✅ 永远遵守用户的 DIY 选择
 - ✅ 中文为主时，西文当点缀（数字、术语）
 - ✅ 模式 B/C/D 走相同的 Phase 1.5 / 2 / 3，**只有 Phase 1 来源分支不同**
+- ✅ **Phase 3 Q0 模式分流是入口铁律 —— 没经过 Q0 就跳到 Q1，重写**
 
 ---
 
@@ -210,10 +339,15 @@ use_base64 = len(images) <= 5 and total_bytes <= 2 * 1024 * 1024
 | [mode-d-original.md](mode-d-original.md) | Phase 0 识别为 D 时 |
 | [presets.md](presets.md) | Phase 3 选风格 / Phase 4 取色板 |
 | [typography.md](typography.md) | Phase 4 字体栈 |
-| [layouts.md](layouts.md) | Phase 4 版式（17 种）+ 大纲模板 + HTML 骨架 |
+| [layouts.md](layouts.md) | Phase 2.1 字数预算表 + Phase 4 版式（17 种）+ 大纲模板 + HTML 骨架 |
 | [deck.css](deck.css) | Phase 4 完整内联 |
 | [deck.js](deck.js) | Phase 4 完整内联 |
 | [animation-presets.md](animation-presets.md) | Phase 4 动画 |
 | [scripts/extract.py](scripts/extract.py) | Phase 1.A 提取 |
+| [scripts/style_preview.py](scripts/style_preview.py) | Phase 3 Q1 进阶模式 · 启动浏览器风格预览页 |
 | [scripts/export_pptx.py](scripts/export_pptx.py) | Phase 5 导出 PPTX |
+| [scripts/generate_demos.py](scripts/generate_demos.py) | **一次性脚本** · 用 3 份 demo 范文生成 14 大师 demo deck + 42 张代表截图 |
+| [templates/preview.html](templates/preview.html) | Phase 3 Q1 进阶模式 · 浏览器渲染的风格预览页 |
+| [templates/preview-data.json](templates/preview-data.json) | preview.html 数据源 · 14 大师元数据 + 场景路由 + 中国风互斥规则 |
+| [demo-decks/](demo-decks/) | 14 大师预生成的 demo deck（每个目录含 cover/chapter/body 三张代表截图 + full.html）|
 | [examples/](examples/) | 参考产出 |

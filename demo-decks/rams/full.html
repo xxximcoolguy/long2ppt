@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>2030 谁定义编辑器？ · Rams 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #ECE9E0);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #F0EDE5);
+    color: var(--stage-ink, #2A2A28);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 96px);  /* Rams: 边距 >= 8% = 102px, 取 96 接近 */
+    opacity: 0; visibility: hidden;
+    transform: translateX(60px);
+    transition:
+        opacity 0.55s cubic-bezier(0.2, 0.9, 0.25, 1),
+        transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1),
+        visibility 0s linear 0.55s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0);
+    transition:
+        opacity 0.65s cubic-bezier(0.2, 0.9, 0.25, 1) 0.05s,
+        transform 0.65s cubic-bezier(0.2, 0.9, 0.25, 1) 0.05s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-60px); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: var(--stage-gap, 28px);
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Rams 配色与字号系统 ============== */
+:root {
+    font-size: 14px;
+    --stage-void: #ECE9E0;
+    --stage-bg: #F0EDE5;       /* Braun White */
+    --stage-paper: #1A1A18;    /* Warm Black */
+    --stage-ink: #2A2A28;
+    --stage-faint: #8A8A87;    /* Braun Grey */
+    --accent-key: #C02820;     /* Braun Signal Red */
+    --accent-soft: #6A6A67;
+    --accent-warn: #D4B018;    /* Function Yellow */
+
+    --type-display-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --type-body: 'Inter', 'Noto Sans SC', sans-serif;
+    --type-latin: 'Inter', 'JetBrains Mono', sans-serif;
+    --type-mono: 'JetBrains Mono', monospace;
+
+    /* Rams 严格 4 级字号比例 4:2:1:0.75 */
+    --type-display: 5.2rem;
+    --type-h1: 3.6rem;
+    --type-h2: 2.2rem;
+    --type-h3: 1.35rem;
+    --type-body: 1.0rem;
+    --type-small: 0.84rem;
+    --type-tag: 0.76rem;
+
+    --leading-tight: 1.15;
+    --leading-snug: 1.4;
+    --leading-cozy: 1.7;
+    --leading-roomy: 1.85;
+
+    --track-han: 0.015em;
+    --track-latin: -0.005em;
+    --track-tag: 0.22em;
+
+    --frame-pad: 96px;
+    --stage-gap: 28px;
+    --col-gap: 56px;
+}
+
+.frame { letter-spacing: var(--track-han); }
+.frame :lang(en), .frame .latin, .frame .num {
+    letter-spacing: var(--track-latin);
+    font-family: var(--type-latin, inherit);
+}
+
+/* ============== Runner & Cue ============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--type-latin); font-size: var(--type-tag);
+    color: var(--stage-faint);
+    letter-spacing: var(--track-tag);
+    z-index: 5;
+}
+.runner--top { top: 36px; }
+.runner--bottom { bottom: 32px; }
+.runner .runner-mark { display: inline-flex; align-items: center; gap: 0.6em; }
+.runner .runner-mark::before {
+    content: ''; width: 5px; height: 5px;
+    background: var(--accent-key); border-radius: 0;  /* Rams: 直角 */
+}
+.cue {
+    display: inline-flex; align-items: center; gap: 0.9em;
+    font-family: var(--type-latin); font-style: normal;
+    color: var(--accent-key);
+    font-size: var(--type-small);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    margin-bottom: 0.4em;
+    font-weight: 500;
+}
+.cue::before {
+    content: ''; width: 32px; height: 1px;
+    background: var(--accent-key);
+}
+.lede {
+    font-family: var(--type-display-cn);
+    font-weight: 700; font-size: var(--type-h2);
+    line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    max-width: 22ch;
+}
+.deck-meta {
+    font-family: var(--type-body);
+    font-size: var(--type-body);
+    line-height: var(--leading-cozy);
+    color: var(--stage-faint);
+    max-width: 60ch;
+    font-weight: 400;
+}
+
+/* ============== Unfold animation ============== */
+.unfold {
+    opacity: 0; transform: translateY(14px);
+    transition:
+        opacity 0.6s cubic-bezier(0.2, 0.9, 0.25, 1),
+        transform 0.6s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.frame[data-state="active"] .unfold { opacity: 1; transform: translateY(0); }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.10s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.20s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.30s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.40s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.50s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.60s; }
+.frame[data-state="active"] .unfold:nth-child(7) { transition-delay: 0.70s; }
+.frame[data-state="active"] .unfold:nth-child(8) { transition-delay: 0.80s; }
+
+/* ============== Rail ============== */
+.rail {
+    position: fixed; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 7px; height: 7px; border-radius: 0;  /* Rams: 直角 */
+    background: var(--stage-paper); opacity: 0.2;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.3s, transform 0.3s, background 0.3s;
+}
+.rail .rail-pip:hover { opacity: 0.5; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-key); opacity: 1;
+    transform: scale(1.5);
+}
+.hotkey-hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-latin);
+    font-size: 11px;
+    color: var(--stage-faint); opacity: 0.4;
+    letter-spacing: 0.2em;
+    pointer-events: none;
+}
+
+.accent-key { color: var(--accent-key); }
+.accent-soft { color: var(--accent-soft); }
+.han { letter-spacing: var(--track-han); }
+.latin { letter-spacing: var(--track-latin); font-family: var(--type-latin); }
+.num { font-family: var(--type-mono); font-variant-numeric: tabular-nums; }
+
+/* ============== Layout: front-frame ============== */
+.front-frame .stage { justify-content: space-between; align-items: flex-start; text-align: left; }
+.cover-top {
+    display: flex; justify-content: space-between; width: 100%;
+    font-family: var(--type-latin); font-size: var(--type-small);
+    color: var(--stage-faint); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.cover-core { display: flex; flex-direction: column; gap: 28px; max-width: 80%; }
+.cover-stamp {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    padding: 0.4em 0.9em; border-radius: 0;  /* Rams 直角 */
+    border: 1px solid var(--accent-key);
+    color: var(--accent-key);
+    font-family: var(--type-latin); font-size: var(--type-small);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 500;
+    align-self: flex-start;
+}
+.cover-title {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-display); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    letter-spacing: -0.01em;
+}
+.cover-sub {
+    font-family: var(--type-body); font-weight: 400;
+    font-size: var(--type-h3); color: var(--stage-faint);
+    max-width: 38ch;
+    line-height: var(--leading-cozy);
+}
+.cover-bottom {
+    font-family: var(--type-latin); font-size: var(--type-small);
+    color: var(--stage-faint); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+
+/* ============== Layout: preface ============== */
+.preface .stage { justify-content: center; gap: var(--stage-gap); }
+.preface-label {
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: var(--track-tag); text-transform: uppercase;
+}
+.trinity {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 24px; margin-top: 24px;
+}
+.trinity-card {
+    border-top: 1px solid var(--stage-paper);
+    padding: 18px 0 0 0;
+}
+.trinity-card:hover { /* Rams: no hover effect */ }
+.trinity-num {
+    font-family: var(--type-mono); font-variant-numeric: tabular-nums;
+    color: var(--accent-key);
+    font-size: 1.8rem; font-weight: 500;
+    line-height: 1; margin-bottom: 0.6em;
+    letter-spacing: 0;
+}
+.trinity-title {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h3); line-height: var(--leading-snug);
+    color: var(--stage-paper); margin-bottom: 0.5em;
+}
+.trinity-desc {
+    font-size: var(--type-small);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    font-weight: 400;
+}
+
+/* ============== Layout: chapter-plate ============== */
+.chapter-plate .stage { justify-content: center; align-items: flex-start; }
+.chapter-num {
+    display: flex; align-items: center; gap: 0.9em;
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.chapter-num::after {
+    content: ''; flex: 0 0 80px; max-width: 80px;
+    height: 1px; background: var(--accent-key);
+}
+.chapter-title {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h1); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    margin-top: 0.4em;
+    letter-spacing: -0.01em;
+    max-width: 14ch;
+}
+.chapter-en {
+    font-family: var(--type-latin); color: var(--stage-faint);
+    font-size: var(--type-h3); margin-top: 1em; font-weight: 400;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.chapter-lead {
+    font-size: var(--type-body); color: var(--stage-ink);
+    margin-top: 2em; max-width: 50ch;
+    line-height: var(--leading-roomy);
+    padding-left: 18px; border-left: 2px solid var(--accent-key);
+    font-weight: 400;
+}
+
+/* ============== Layout: atlas ============== */
+.atlas {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 32px 28px; margin-top: 28px;
+}
+.atlas-item {
+    border-top: 1px solid var(--stage-paper);
+    padding: 18px 0 0 0;
+}
+.atlas-tag {
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.atlas-number {
+    font-family: var(--type-mono); font-variant-numeric: tabular-nums;
+    color: var(--stage-paper);
+    font-size: 2.6rem; font-weight: 500;
+    line-height: 1.1; margin: 0.25em 0 0.4em;
+    letter-spacing: -0.01em;
+}
+.atlas-name {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h3); line-height: var(--leading-snug);
+    color: var(--stage-paper); margin-bottom: 0.4em;
+}
+.atlas-desc {
+    font-size: var(--type-small); color: var(--stage-faint);
+    line-height: var(--leading-cozy); font-weight: 400;
+}
+
+/* ============== Layout: dialog ============== */
+.dialog {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--col-gap); margin-top: 28px;
+}
+.dialog-head {
+    font-family: var(--type-display-cn); color: var(--stage-paper);
+    font-size: var(--type-h3); font-weight: 700;
+    letter-spacing: 0;
+    border-bottom: 1px solid var(--accent-key);
+    padding-bottom: 0.7em; margin-bottom: 1em;
+}
+.dialog-head .latin {
+    display: block; font-family: var(--type-latin);
+    color: var(--accent-key); font-weight: 500;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    margin-bottom: 0.4em;
+}
+.dialog-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.dialog-list li {
+    font-size: var(--type-body); color: var(--stage-ink);
+    line-height: var(--leading-cozy);
+    padding-left: 1.4em; position: relative;
+    font-weight: 400;
+}
+.dialog-list li::before {
+    content: ''; position: absolute;
+    left: 0; top: 0.7em;
+    width: 8px; height: 1px; background: var(--accent-key);
+}
+.dialog-list li b { color: var(--accent-key); font-weight: 500; }
+
+/* ============== Layout: phases ============== */
+.phases {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 28px; margin-top: 36px;
+}
+.phase {
+    padding: 22px 0 0 0;
+    border-top: 1px solid var(--stage-paper);
+}
+.phase:nth-child(2) { border-top-color: var(--accent-soft); }
+.phase:nth-child(3) { border-top-color: var(--accent-key); }
+.phase-roman {
+    font-family: var(--type-latin); color: var(--stage-faint);
+    font-size: var(--type-small);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase; font-weight: 500;
+    margin-bottom: 0.6em;
+}
+.phase-formula {
+    font-family: var(--type-mono); color: var(--accent-key);
+    font-size: 1.6rem; font-weight: 500;
+    margin-bottom: 0.6em;
+    letter-spacing: 0;
+}
+.phase-name {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h3); color: var(--stage-paper);
+    line-height: var(--leading-snug);
+    margin-bottom: 0.6em;
+}
+.phase-desc {
+    font-size: var(--type-small); color: var(--stage-faint);
+    line-height: var(--leading-cozy); font-weight: 400;
+}
+
+/* ============== Layout: tenets ============== */
+.tenets { display: grid; gap: 28px; margin-top: 28px; }
+.tenets--2 { grid-template-columns: 1fr 1fr; }
+.tenets--3 { grid-template-columns: repeat(3, 1fr); }
+.tenet {
+    padding: 22px 0 0 0;
+    border-top: 1px solid var(--stage-paper);
+}
+.tenet--negative {
+    border-top-color: var(--accent-key);
+}
+.tenet-label {
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase; margin-bottom: 0.6em; font-weight: 500;
+}
+.tenet-label.negative { color: var(--accent-key); }
+.tenet-name {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h3); line-height: var(--leading-snug);
+    color: var(--stage-paper); margin-bottom: 0.5em;
+}
+.tenet-body {
+    font-size: var(--type-body); color: var(--stage-faint);
+    line-height: var(--leading-roomy); font-weight: 400;
+}
+
+/* ============== Layout: aphorism ============== */
+.aphorism .stage { justify-content: center; text-align: left; align-items: flex-start; gap: 36px; }
+.aphorism-mark {
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: 0.4em; text-transform: uppercase;
+}
+.aphorism-quote {
+    position: relative; max-width: 24ch;
+}
+.aphorism-quote .quote-cn {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: 4.4rem; line-height: 1.15;
+    color: var(--stage-paper);
+    letter-spacing: -0.01em;
+}
+.aphorism-attr {
+    font-family: var(--type-latin); color: var(--stage-faint);
+    font-size: var(--type-small); font-weight: 400;
+    letter-spacing: var(--track-tag); text-transform: uppercase;
+    margin-top: 16px;
+}
+.aphorism-attr::before {
+    content: '—  ';
+}
+
+/* ============== Layout: coda ============== */
+.coda .stage { justify-content: center; text-align: left; align-items: flex-start; }
+.coda-pre {
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+}
+.coda-headline {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-display); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    margin-bottom: 0.6em; letter-spacing: -0.01em;
+    max-width: 14ch;
+}
+.coda-headline .accent-key { color: var(--accent-key); }
+.coda-post {
+    font-family: var(--type-display-cn); font-weight: 400;
+    font-size: var(--type-h3); color: var(--stage-ink);
+    max-width: 36ch; line-height: var(--leading-roomy);
+}
+.coda-sign {
+    margin-top: 56px;
+    font-family: var(--type-latin); color: var(--accent-key);
+    font-size: var(--type-small); font-weight: 500;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.coda-sign::before {
+    content: ''; display: inline-block;
+    width: 32px; height: 1px;
+    background: var(--accent-key);
+    vertical-align: middle; margin-right: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="AI 编辑器市场全景与产品规划摘要 2026">
+
+<!-- 1. 封面 -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-top unfold">
+            <span class="latin">DECK · 2026.05</span>
+            <span class="latin">EP · 01 / 18</span>
+        </div>
+        <div class="cover-core unfold">
+            <span class="cover-stamp"><span class="latin">●</span> Market Brief</span>
+            <h1 class="cover-title">2030 谁定义<br>编辑<span class="accent-key">器</span>？</h1>
+            <p class="cover-sub">AI 编辑器市场全景与产品规划摘要 ·<br>从「光标中心」到「对话中心」的范式转移</p>
+        </div>
+        <div class="cover-bottom unfold latin">▽  SCROLL TO READ  ▽</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin">01 / 18</span></div>
+</section>
+
+<!-- 2. 序章 -->
+<section class="frame preface" data-title="序章">
+    <div class="stage">
+        <div class="preface-label unfold latin">// PROLOGUE</div>
+        <h2 class="lede unfold">2026 不只是 78 亿美元市场。<br>它是一次底层范式转移。</h2>
+        <p class="deck-meta unfold">编辑器不再以光标位置为中心，而以对话上下文为中心。<br>三个数据点揭示了这次重构的速度。</p>
+        <div class="trinity">
+            <article class="trinity-card unfold">
+                <div class="trinity-num">7×</div>
+                <h3 class="trinity-title">用户增长</h3>
+                <p class="trinity-desc">VS Code 用 18 个月达 100 万月活，新一代产品只用 90 天</p>
+            </article>
+            <article class="trinity-card unfold">
+                <div class="trinity-num">22%</div>
+                <h3 class="trinity-title">付费率跃升</h3>
+                <p class="trinity-desc">从传统 IDE 时代的 3% 跳到 AI 编辑器的 22%</p>
+            </article>
+            <article class="trinity-card unfold">
+                <div class="trinity-num">4×</div>
+                <h3 class="trinity-title">ARPU 跳升</h3>
+                <p class="trinity-desc">单用户年均价值从 60 美元跃升至 240 美元</p>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">PROLOGUE</span><span class="latin">02 / 18</span></div>
+</section>
+
+<!-- 3. PART 01 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 01 范式转移">
+    <div class="stage">
+        <div class="chapter-num unfold latin">PART · 01</div>
+        <h2 class="chapter-title unfold">范式转移</h2>
+        <div class="chapter-en unfold latin">The Paradigm Shift</div>
+        <p class="chapter-lead unfold">从「人写代码、机器执行」到「人提需求、机器写代码、人审查」。<br>编辑器的中心不再是光标，而是对话上下文。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin">03 / 18</span></div>
+</section>
+
+<!-- 4. 关键数据网格 -->
+<section class="frame" data-title="八大关键数字">
+    <div class="stage">
+        <div class="cue unfold">KEY METRICS · 八大关键数字</div>
+        <h2 class="lede unfold">市场重构的量化证据</h2>
+        <div class="atlas">
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">01 · USERS</div>
+                <div class="atlas-number">7×</div>
+                <div class="atlas-name">用户增长倍数</div>
+                <div class="atlas-desc">从 VS Code 时代到 AI 编辑器</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">02 · REV</div>
+                <div class="atlas-number">6.5×</div>
+                <div class="atlas-name">市场规模扩张</div>
+                <div class="atlas-desc">2023 年 12 亿至 2025 年 78 亿美元</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">03 · PAID</div>
+                <div class="atlas-number">7.3×</div>
+                <div class="atlas-name">付费率提升</div>
+                <div class="atlas-desc">3% 跃升至 22%</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">04 · ARPU</div>
+                <div class="atlas-number">4×</div>
+                <div class="atlas-name">ARPU 跳升</div>
+                <div class="atlas-desc">60 至 240 美元/年</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">05 · CTX</div>
+                <div class="atlas-number">15×</div>
+                <div class="atlas-name">上下文窗口</div>
+                <div class="atlas-desc">从 64K 扩张至 1M token</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">06 · COST</div>
+                <div class="atlas-number">-80%</div>
+                <div class="atlas-name">模型推理成本</div>
+                <div class="atlas-desc">两年时间，单 token 价格下降</div>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">DATA</span><span class="latin">04 / 18</span></div>
+</section>
+
+<!-- 5. PART 02 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 02 竞品深度剖面">
+    <div class="stage">
+        <div class="chapter-num unfold latin">PART · 02</div>
+        <h2 class="chapter-title unfold">竞品深度剖面</h2>
+        <div class="chapter-en unfold latin">Competitive Cross-Sections</div>
+        <p class="chapter-lead unfold">护城河在哪里？拆解四家代表性产品的能力结构与失败模式。<br>不是谁做得好，是谁的核心能力别人难以复制。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 02</span><span class="latin">05 / 18</span></div>
+</section>
+
+<!-- 6. Cursor vs Windsurf -->
+<section class="frame" data-title="Cursor vs Windsurf">
+    <div class="stage">
+        <div class="cue unfold">FIRST DUEL · GUI 派双雄</div>
+        <h2 class="lede unfold">Cursor vs Windsurf</h2>
+        <div class="dialog">
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">PRODUCT A</span>Cursor · 增长之王</h3>
+                <ul class="dialog-list">
+                    <li>4200 万月活 · 28% 付费率</li>
+                    <li>VS Code fork + 优秀对话产品体验</li>
+                    <li>核心能力依赖底层模型（Claude / GPT）</li>
+                    <li><b>护城河在融化</b> · 体验是最易复制的维度</li>
+                </ul>
+            </div>
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">PRODUCT B</span>Windsurf · 原生 IDE</h3>
+                <ul class="dialog-list">
+                    <li>1800 万月活 · 24% 付费率 · L4 自主性</li>
+                    <li>从零写编辑器内核 · 1M token 上下文</li>
+                    <li>Cascade 模式连续编辑数十文件 + 跑测试</li>
+                    <li><b>技术深度领先半年</b> · 但缺生态壁垒</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COMPARE</span><span class="latin">06 / 18</span></div>
+</section>
+
+<!-- 7. Claude Code vs Copilot -->
+<section class="frame" data-title="Claude Code vs Copilot">
+    <div class="stage">
+        <div class="cue unfold">SECOND DUEL · CLI 派 vs 老牌</div>
+        <h2 class="lede unfold">Claude Code vs GitHub Copilot</h2>
+        <div class="dialog">
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">PRODUCT C</span>Claude Code · 反 IDE 实验</h3>
+                <ul class="dialog-list">
+                    <li>2400 万月活 · <b>32% 付费率（全行业最高）</b></li>
+                    <li>不做 IDE · 做 CLI + Skill + Hook + Agent</li>
+                    <li>在终端原生用户里渗透率极高</li>
+                    <li>哲学：编辑器是历史包袱，AI 是 shell 协作者</li>
+                </ul>
+            </div>
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">PRODUCT D</span>GitHub Copilot · 失去主动权</h3>
+                <ul class="dialog-list">
+                    <li>6500 万月活 · 但付费率仅 18% · L2 自主性</li>
+                    <li>2024 年起产品节奏明显落后</li>
+                    <li>无 Composer 对等 · 无 Agent 模式</li>
+                    <li><b>从领先者变追随者</b> · 微软体量保不出局</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COMPARE</span><span class="latin">07 / 18</span></div>
+</section>
+
+<!-- 8. PART 03 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 03 结构性趋势">
+    <div class="stage">
+        <div class="chapter-num unfold latin">PART · 03</div>
+        <h2 class="chapter-title unfold">结构性趋势</h2>
+        <div class="chapter-en unfold latin">Three Structural Shifts</div>
+        <p class="chapter-lead unfold">不是「补全准不准」，而是「能让 AI 独立完成多长的任务」。<br>三条结构性趋势在重塑这个市场。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 03</span><span class="latin">08 / 18</span></div>
+</section>
+
+<!-- 9. 自主性等级 phases -->
+<section class="frame" data-title="自主性等级">
+    <div class="stage">
+        <div class="cue unfold">TREND 01 · 自主性等级</div>
+        <h2 class="lede unfold">从光标补全到自主 Agent</h2>
+        <p class="deck-meta unfold">任务长度的中位数从 2024 年的 90 秒延长到 2026 年的 27 分钟</p>
+        <div class="phases">
+            <article class="phase unfold">
+                <div class="phase-roman">Level 02</div>
+                <div class="phase-formula latin">complete()</div>
+                <h4 class="phase-name">单行补全</h4>
+                <p class="phase-desc">机器在你写代码时建议下一个 token。代表：早期 Copilot。</p>
+            </article>
+            <article class="phase unfold">
+                <div class="phase-roman">Level 03</div>
+                <div class="phase-formula latin">refactor()</div>
+                <h4 class="phase-name">多文件编辑</h4>
+                <p class="phase-desc">机器同时改动多个文件。代表：Cursor Composer / Zed AI。</p>
+            </article>
+            <article class="phase unfold">
+                <div class="phase-roman">Level 04</div>
+                <div class="phase-formula latin">execute()</div>
+                <h4 class="phase-name">长任务自主</h4>
+                <p class="phase-desc">机器编辑+跑测试+提交，几乎无人介入。代表：Windsurf / Claude Code / Cline。</p>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">TREND 01</span><span class="latin">09 / 18</span></div>
+</section>
+
+<!-- 10. GUI vs CLI 派分化 -->
+<section class="frame" data-title="形态分化">
+    <div class="stage">
+        <div class="cue unfold">TREND 02 · 形态分化</div>
+        <h2 class="lede unfold">GUI 派与 CLI 派将长期共存</h2>
+        <div class="dialog">
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">SCHOOL A</span>GUI 派</h3>
+                <ul class="dialog-list">
+                    <li>代表：Cursor · Windsurf · Zed AI</li>
+                    <li>服务：前端 · 设计 · 初级开发</li>
+                    <li>核心价值：所见即所得 · 上下文可视化</li>
+                    <li><b>低门槛接入 · 高品牌化</b></li>
+                </ul>
+            </div>
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">SCHOOL B</span>CLI 派</h3>
+                <ul class="dialog-list">
+                    <li>代表：Claude Code · Aider · Cline</li>
+                    <li>服务：后端 · DevOps · SRE · AI 工程师</li>
+                    <li>核心价值：可脚本化 · 可工作流嵌入</li>
+                    <li><b>高黏性用户 · 高 ARPU</b></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">TREND 02</span><span class="latin">10 / 18</span></div>
+</section>
+
+<!-- 11. 定价从订阅转向用量 -->
+<section class="frame" data-title="定价转向">
+    <div class="stage">
+        <div class="cue unfold">TREND 03 · 商业模式</div>
+        <h2 class="lede unfold">定价模型从订阅转向用量</h2>
+        <div class="tenets tenets--3">
+            <article class="tenet unfold">
+                <div class="tenet-label latin">PRINCIPLE 01 · 旧模型崩塌</div>
+                <h4 class="tenet-name">20 美元/月在亏钱</h4>
+                <p class="tenet-body">高频用户的实际成本是普通用户的 50 倍。固定订阅模型对头部用户严重亏损。</p>
+            </article>
+            <article class="tenet unfold">
+                <div class="tenet-label latin">PRINCIPLE 02 · 新模型成型</div>
+                <h4 class="tenet-name">Token 量计费</h4>
+                <p class="tenet-body">Cursor / Claude Code 已引入 token 量计费机制。底层成本与用户付费强对齐。</p>
+            </article>
+            <article class="tenet unfold">
+                <div class="tenet-label latin">PRINCIPLE 03 · 行业转向</div>
+                <h4 class="tenet-name">2027 八成迁移</h4>
+                <p class="tenet-body">预计 2027 年 80% 的 AI 编辑器会切换到混合计费（订阅 + 用量上限）。</p>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">TREND 03</span><span class="latin">11 / 18</span></div>
+</section>
+
+<!-- 12. PART 04 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 04 产品规划">
+    <div class="stage">
+        <div class="chapter-num unfold latin">PART · 04</div>
+        <h2 class="chapter-title unfold">产品规划</h2>
+        <div class="chapter-en unfold latin">Our Strategy</div>
+        <p class="chapter-lead unfold">专注 CLI 派、深耕中文长文场景、用大师设计语言建立审美护城河。<br>「不做的事」比「做的事」更能定义产品。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 04</span><span class="latin">12 / 18</span></div>
+</section>
+
+<!-- 13. 我们做什么 / 我们不做什么 tenets -->
+<section class="frame" data-title="做与不做">
+    <div class="stage">
+        <div class="cue unfold">FOCUS BY SUBTRACTION</div>
+        <h2 class="lede unfold">做什么 ／ 不做什么</h2>
+        <div class="tenets tenets--2">
+            <article class="tenet unfold">
+                <div class="tenet-label latin">DO · 我们做这些</div>
+                <h4 class="tenet-name">CLI 派 / 中文长文 / 审美护城河</h4>
+                <p class="tenet-body">深耕 Claude Code 生态、做最适合中文长文的设计语言、用 14 大师建立无法被通用工具复制的视觉资产。</p>
+            </article>
+            <article class="tenet tenet--negative unfold">
+                <div class="tenet-label latin negative">DON'T · 我们不做这些</div>
+                <h4 class="tenet-name">不做 VS Code 插件 · 不做企业销售 · 不做模型训练</h4>
+                <p class="tenet-body">生态被绑架 / 团队不擅长 / 成本结构不支持。「不做」比「做」更能定义我们的位置。</p>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">STRATEGY</span><span class="latin">13 / 18</span></div>
+</section>
+
+<!-- 14. 6 个月目标 atlas -->
+<section class="frame" data-title="6 个月目标">
+    <div class="stage">
+        <div class="cue unfold">6 MONTH TARGETS</div>
+        <h2 class="lede unfold">下一阶段：四个量化目标</h2>
+        <div class="atlas">
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">TARGET 01</div>
+                <div class="atlas-number">50 万</div>
+                <div class="atlas-name">月活用户</div>
+                <div class="atlas-desc">从当前 3 万，6 个月内 17 倍增长</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">TARGET 02</div>
+                <div class="atlas-number">25%+</div>
+                <div class="atlas-name">付费转化率</div>
+                <div class="atlas-desc">维持在行业 top 区间</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">TARGET 03</div>
+                <div class="atlas-number">$200</div>
+                <div class="atlas-name">单用户 ARPU</div>
+                <div class="atlas-desc">年均价值，对齐 Cursor 当前水平</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">TARGET 04</div>
+                <div class="atlas-number">NPS 70+</div>
+                <div class="atlas-desc">终端开发者满意度净值</div>
+                <div class="atlas-desc">在目标用户群里做到"愿意推荐"</div>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">TARGETS</span><span class="latin">14 / 18</span></div>
+</section>
+
+<!-- 15. PART 05 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 05 风险">
+    <div class="stage">
+        <div class="chapter-num unfold latin">PART · 05</div>
+        <h2 class="chapter-title unfold">最大风险</h2>
+        <div class="chapter-en unfold latin">The Existential Risk</div>
+        <p class="chapter-lead unfold">不是产品质量，不是模型抖动，不是商业模式。<br>真正的杀手藏在意想不到的地方。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 05</span><span class="latin">15 / 18</span></div>
+</section>
+
+<!-- 16. 三大风险 tenets-3 -->
+<section class="frame" data-title="风险地图">
+    <div class="stage">
+        <div class="cue unfold">RISK MAP · 三大风险</div>
+        <h2 class="lede unfold">风险按严重度排序</h2>
+        <div class="tenets tenets--3">
+            <article class="tenet tenet--negative unfold">
+                <div class="tenet-label latin">RISK 01 · CRITICAL</div>
+                <h4 class="tenet-name">分发，不是产品</h4>
+                <p class="tenet-body">目标用户搜不到，做再好也是 zero。需要 Claude Code 生态 + 中文社群 + KOL 三层应对。</p>
+            </article>
+            <article class="tenet unfold">
+                <div class="tenet-label latin">RISK 02 · HIGH</div>
+                <h4 class="tenet-name">上游模型变化</h4>
+                <p class="tenet-body">所有 AI 产品都依赖底层模型，模型一变体验就抖。对策：model-agnostic 架构 + 多模型并行支持。</p>
+            </article>
+            <article class="tenet unfold">
+                <div class="tenet-label latin">RISK 03 · MEDIUM</div>
+                <h4 class="tenet-name">商业模式未经检验</h4>
+                <p class="tenet-body">22% 付费率虽高，没经过经济下行周期。2027 前必须把毛利率打到 60% 以上才安全。</p>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">RISK</span><span class="latin">16 / 18</span></div>
+</section>
+
+<!-- 17. 金句 aphorism -->
+<section class="frame aphorism" data-title="金句">
+    <div class="stage">
+        <div class="aphorism-mark unfold latin">EPIGRAPH · ON DISTRIBUTION</div>
+        <blockquote class="aphorism-quote unfold">
+            <p class="quote-cn">杀死产品的<br>不是功能多，<br>是 <span class="accent-key">invisibility</span>。</p>
+        </blockquote>
+        <div class="aphorism-attr unfold latin">Charlie Munger Style</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">QUOTE</span><span class="latin">17 / 18</span></div>
+</section>
+
+<!-- 18. 终章 coda -->
+<section class="frame coda" data-title="终章">
+    <div class="stage">
+        <div class="coda-pre unfold latin">END · MARKET BRIEF · 2026.05</div>
+        <h1 class="coda-headline unfold">这是一场<br>十年<span class="accent-key">战争</span></h1>
+        <p class="coda-post unfold">谁先理解「自主性等级」和「分发护城河」，<br>谁就能在 2030 年的市场拿到决定性的位置。</p>
+        <div class="coda-sign unfold latin">A LONGTEXT-TO-SLIDES DEMO · RAMS</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin">18 / 18</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

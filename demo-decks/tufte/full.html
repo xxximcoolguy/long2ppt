@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AI 编辑器市场：六款产品的证据 · Tufte 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #E8E6E1);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #FBFAF7);
+    color: var(--stage-ink, #2B2B2B);
+    font-family: var(--type-body, serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 84px);
+    opacity: 0; visibility: hidden;
+    /* Tufte: 内容是主角，转场极克制 —— 仅淡入，无位移 */
+    transition:
+        opacity 0.5s ease,
+        visibility 0s linear 0.5s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible;
+    transition:
+        opacity 0.55s ease 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: var(--stage-gap, 22px);
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Tufte 配色与字号系统 ============== */
+/* §3 配色：灰阶打底（浅灰/中灰/深灰/黑）+ 红蓝强调，整页 ≤ 3 色 */
+:root {
+    font-size: 15px;
+    --stage-void: #E8E6E1;
+    --stage-bg: #FBFAF7;        /* 暖白纸面，非纯白，接近 ET Book 纸张 */
+    --ink: #1E1E1C;            /* 近黑 —— 数据骨架 */
+    --ink-soft: #2B2B2B;       /* 正文 */
+    --gray-deep: #57564F;      /* 深灰 */
+    --gray-mid: #8A887F;       /* 中灰 —— 注释 */
+    --gray-light: #C4C2B8;     /* 浅灰 —— 极细分隔线 */
+    --gray-faint: #DEDCD3;     /* 接近背景的网格 */
+    --accent-red: #A4231E;     /* 红 = 危险 / 重点 */
+    --accent-blue: #2F4E78;    /* 蓝 = 参考 / 对比 */
+
+    /* §3 字体：衬线正文 + 无衬线图表标签 */
+    --type-serif: 'Noto Serif SC', Georgia, 'Times New Roman', serif;
+    --type-serif-en: Georgia, 'Times New Roman', serif;
+    --type-sans: 'Noto Sans SC', 'Gill Sans', 'Gill Sans MT', sans-serif;
+    --type-body: var(--type-serif);
+
+    /* §2 H-2 层级用字号梯度，不用色块/边框/图标 */
+    --type-display: 3.9rem;
+    --type-h1: 2.7rem;
+    --type-h2: 1.78rem;
+    --type-h3: 1.18rem;
+    --type-text: 1.0rem;
+    --type-small: 0.84rem;
+    --type-fine: 0.72rem;
+    --type-micro: 0.64rem;
+
+    --leading-tight: 1.2;
+    --leading-snug: 1.45;
+    --leading-read: 1.78;     /* §5 中文需更大行距 */
+
+    --track-han: 0.01em;
+    --track-label: 0.14em;    /* sans 图表标签字距 */
+
+    --frame-pad: 84px;
+    --stage-gap: 22px;
+}
+
+.frame { letter-spacing: var(--track-han); }
+.num {
+    font-family: var(--type-serif-en);
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: 0;
+}
+
+/* ============== 通用排版元素 ============== */
+/* §2 H-2：副标题/注释靠字号字重，绝不用色块 icon */
+.kicker {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    font-weight: 500;
+    letter-spacing: var(--track-label);
+    color: var(--gray-mid);
+    text-transform: uppercase;
+}
+.kicker .red { color: var(--accent-red); }
+.lede {
+    font-family: var(--type-serif);
+    font-weight: 600;
+    font-size: var(--type-h2);
+    line-height: var(--leading-tight);
+    color: var(--ink);
+}
+.note {
+    font-family: var(--type-serif);
+    font-size: var(--type-text);
+    line-height: var(--leading-read);
+    color: var(--gray-deep);
+    max-width: 64ch;
+    font-weight: 400;
+}
+.note .em { color: var(--accent-red); font-weight: 600; }
+.note .blue { color: var(--accent-blue); font-weight: 600; }
+/* §2 H-1：极细横规作分节，非装饰边框 */
+.hairline {
+    height: 1px; width: 100%;
+    background: var(--gray-light);
+    border: 0;
+}
+
+/* ============== Runner（页脚行 —— 仅承载定位信息）============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    bottom: 30px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--type-sans);
+    font-size: var(--type-micro);
+    font-weight: 500;
+    color: var(--gray-mid);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    z-index: 5;
+}
+.runner .seg { color: var(--gray-mid); }
+.runner .num { font-family: var(--type-serif-en); letter-spacing: 0.08em; }
+
+/* ============== Unfold —— Tufte 克制：仅 8% 透明度推入 ============== */
+.unfold {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.frame[data-state="active"] .unfold { opacity: 1; }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.06s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.13s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.20s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.27s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.34s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.41s; }
+
+/* ============== Rail（导航点 —— 极小，灰阶）============== */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 9px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gray-mid); opacity: 0.32;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.3s, background 0.3s;
+}
+.rail .rail-pip:hover { opacity: 0.6; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-red); opacity: 1;
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-sans);
+    font-size: 10px;
+    color: var(--gray-mid); opacity: 0.4;
+    letter-spacing: 0.2em;
+    pointer-events: none;
+}
+
+/* ============== Frame 1 · 封面 ============== */
+.front-frame .stage { justify-content: space-between; align-items: flex-start; }
+.cover-top {
+    display: flex; justify-content: space-between; width: 100%;
+    font-family: var(--type-sans);
+    font-size: var(--type-fine); font-weight: 500;
+    color: var(--gray-mid); letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--gray-light);
+}
+.cover-core { display: flex; flex-direction: column; gap: 20px; max-width: 92%; }
+.cover-epigraph {
+    font-family: var(--type-serif);
+    font-size: var(--type-text);
+    font-style: italic;
+    color: var(--gray-mid);
+    line-height: var(--leading-snug);
+}
+.cover-title {
+    font-family: var(--type-serif);
+    font-weight: 700;
+    font-size: var(--type-display);
+    line-height: 1.16;
+    color: var(--ink);
+    letter-spacing: 0;
+}
+.cover-title .red { color: var(--accent-red); }
+.cover-sub {
+    font-family: var(--type-serif);
+    font-weight: 400;
+    font-size: var(--type-h3);
+    color: var(--gray-deep);
+    line-height: var(--leading-snug);
+    max-width: 50ch;
+}
+/* 封面 sparkline —— word-sized graphic，预告全 deck 的数据气质 */
+.cover-spark {
+    display: flex; align-items: flex-end; gap: 22px;
+    padding-top: 8px;
+}
+.cover-spark .spark-cap {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine); font-weight: 400;
+    color: var(--gray-mid);
+    line-height: var(--leading-snug);
+    max-width: 30ch;
+}
+.cover-bottom {
+    width: 100%;
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--type-sans);
+    font-size: var(--type-fine); font-weight: 500;
+    color: var(--gray-mid); letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-light);
+}
+
+/* ============== Frame 2 · 章节扉 ============== */
+.chapter-plate .stage { justify-content: center; align-items: flex-start; gap: 0; }
+.chapter-line {
+    display: flex; align-items: baseline; gap: 16px;
+    font-family: var(--type-sans);
+    font-size: var(--type-fine); font-weight: 500;
+    color: var(--accent-red); letter-spacing: var(--track-label);
+    text-transform: uppercase;
+}
+.chapter-line::after {
+    content: ''; flex: 1; height: 1px;
+    background: var(--gray-light);
+    align-self: center;
+}
+.chapter-title {
+    font-family: var(--type-serif);
+    font-weight: 700;
+    font-size: var(--type-h1);
+    line-height: var(--leading-tight);
+    color: var(--ink);
+    margin-top: 0.5em;
+    max-width: 16ch;
+}
+.chapter-en {
+    font-family: var(--type-serif-en);
+    font-style: italic;
+    font-size: var(--type-h3);
+    color: var(--gray-mid);
+    margin-top: 0.5em;
+}
+.chapter-lead {
+    font-family: var(--type-serif);
+    font-size: var(--type-text);
+    color: var(--gray-deep);
+    line-height: var(--leading-read);
+    max-width: 52ch;
+    margin-top: 1.6em;
+}
+.chapter-lead .em { color: var(--accent-red); font-weight: 600; }
+
+/* ============== Frame 3 · 数据表（Tufte 招牌版式）============== */
+.data-frame .stage { justify-content: flex-start; gap: 14px; padding-top: 4px; }
+.frame-head {
+    display: flex; flex-direction: column; gap: 5px;
+}
+/* §2 H-3：表格无竖网格线，横向只在分组处用极细线 */
+.tufte-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums lining-nums;
+    margin-top: 4px;
+}
+.tufte-table thead th {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    font-weight: 500;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--gray-mid);
+    text-align: right;
+    padding: 0 14px 9px 14px;
+    border-bottom: 1.4px solid var(--ink);   /* 顶规：唯一稍重的线 */
+    white-space: nowrap;
+}
+.tufte-table thead th.col-name { text-align: left; padding-left: 0; }
+.tufte-table thead th .unit {
+    display: block;
+    font-size: var(--type-micro);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--gray-light);
+    text-transform: none;
+    margin-top: 2px;
+}
+.tufte-table tbody td {
+    font-family: var(--type-serif-en);
+    font-size: 0.98rem;
+    color: var(--ink-soft);
+    text-align: right;          /* §2 H-3：数字右对齐 */
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--gray-faint);  /* 行分组用接近背景的极细线 */
+}
+.tufte-table tbody tr:last-child td { border-bottom: 1.4px solid var(--ink); }
+.tufte-table tbody td.col-name {
+    font-family: var(--type-serif);
+    text-align: left;           /* §2 H-3：文字左对齐 */
+    padding-left: 0;
+    color: var(--ink);
+    font-weight: 500;
+}
+.tufte-table tbody td.col-name .latin {
+    font-family: var(--type-serif-en);
+}
+.tufte-table tbody td.col-name .sub {
+    display: block;
+    font-family: var(--type-sans);
+    font-size: var(--type-micro);
+    font-weight: 400;
+    color: var(--gray-mid);
+    letter-spacing: 0.02em;
+    margin-top: 1px;
+}
+/* 数值就地标注：红 = 该列最高 / 重点，蓝 = 对比参考 */
+.tufte-table td .peak { color: var(--accent-red); font-weight: 600; }
+.tufte-table td .ref  { color: var(--accent-blue); font-weight: 600; }
+/* 表内 sparkline：自主性等级 —— word-sized graphic，无轴无标签 */
+.lvl-spark {
+    display: inline-flex; align-items: flex-end; gap: 2.5px;
+    height: 13px; vertical-align: -2px;
+}
+.lvl-spark i {
+    width: 4px; display: block; background: var(--gray-light);
+}
+.lvl-spark i.on { background: var(--accent-blue); }
+.lvl-spark i.on-hi { background: var(--accent-red); }
+.lvl-tag {
+    font-family: var(--type-sans);
+    font-size: var(--type-micro);
+    color: var(--gray-mid);
+    margin-left: 7px;
+    letter-spacing: 0.04em;
+}
+/* §2 H-5：注释紧贴表格，不另起一页 */
+.table-annot {
+    display: flex; gap: 40px;
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    color: var(--gray-mid);
+    line-height: var(--leading-snug);
+    margin-top: 6px;
+}
+.table-annot .swatch {
+    display: inline-block; width: 18px; height: 2px;
+    vertical-align: 3px; margin-right: 6px;
+}
+.table-annot .swatch.red { background: var(--accent-red); }
+.table-annot .swatch.blue { background: var(--accent-blue); }
+.table-annot b { color: var(--gray-deep); font-weight: 600; }
+
+/* ============== Frame 4 · Small Multiples + 金句 ============== */
+.multiples-frame .stage { justify-content: flex-start; gap: 16px; padding-top: 4px; }
+/* §1 Small Multiples：同坐标系并列微型图，靠扫视完成对比 */
+.small-multiples {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-top: 6px;
+    border-top: 1.4px solid var(--ink);
+    border-bottom: 1.4px solid var(--ink);
+}
+.sm-cell {
+    padding: 18px 22px 16px 22px;
+    border-right: 1px solid var(--gray-faint);
+}
+.sm-cell:last-child { border-right: 0; }
+.sm-label {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    font-weight: 500;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--gray-mid);
+}
+.sm-value {
+    font-family: var(--type-serif-en);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+    margin: 8px 0 2px;
+}
+.sm-value .x { font-size: 1.1rem; color: var(--accent-red); font-weight: 600; }
+/* 微型对比条：旧值（灰）→ 新值（蓝），坐标系统一 */
+.sm-bars {
+    display: flex; flex-direction: column; gap: 5px;
+    margin: 10px 0 6px;
+}
+.sm-bar-row { display: flex; align-items: center; gap: 8px; }
+.sm-bar-track { flex: 1; height: 7px; background: transparent; }
+.sm-bar { height: 7px; display: block; }
+.sm-bar.old { background: var(--gray-light); }
+.sm-bar.new { background: var(--accent-blue); }
+.sm-bar-tag {
+    font-family: var(--type-sans);
+    font-size: var(--type-micro);
+    color: var(--gray-mid);
+    width: 30px; flex: none;
+    letter-spacing: 0.03em;
+}
+.sm-desc {
+    font-family: var(--type-serif);
+    font-size: var(--type-small);
+    color: var(--gray-deep);
+    line-height: var(--leading-snug);
+}
+.multiples-foot {
+    display: flex; align-items: baseline; gap: 14px;
+    margin-top: 4px;
+}
+.multiples-foot .annot {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    color: var(--gray-mid);
+    line-height: var(--leading-snug);
+}
+/* 金句：衬线大字，无引号装饰，靠字号承重 */
+.epigraph {
+    font-family: var(--type-serif);
+    font-weight: 600;
+    font-size: 1.62rem;
+    line-height: var(--leading-snug);
+    color: var(--ink);
+    max-width: 40ch;
+    padding-left: 16px;
+    border-left: 2px solid var(--accent-red);
+    margin-top: 6px;
+}
+.epigraph .em { color: var(--accent-red); }
+.epigraph .attr {
+    display: block;
+    font-family: var(--type-serif-en);
+    font-style: italic;
+    font-size: var(--type-small);
+    font-weight: 400;
+    color: var(--gray-mid);
+    margin-top: 10px;
+}
+
+/* ============== Frame 5 · 终章 coda ============== */
+.coda .stage { justify-content: center; align-items: flex-start; gap: 0; }
+.coda-rule {
+    width: 100%; height: 1px; background: var(--gray-light);
+    margin-bottom: 30px;
+}
+.coda-kicker {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine); font-weight: 500;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--gray-mid);
+    margin-bottom: 26px;
+}
+.coda-headline {
+    font-family: var(--type-serif);
+    font-weight: 700;
+    font-size: var(--type-h1);
+    line-height: var(--leading-tight);
+    color: var(--ink);
+    max-width: 20ch;
+    margin-bottom: 0.7em;
+}
+.coda-headline .red { color: var(--accent-red); }
+.coda-body {
+    font-family: var(--type-serif);
+    font-weight: 400;
+    font-size: var(--type-h3);
+    color: var(--gray-deep);
+    line-height: var(--leading-read);
+    max-width: 44ch;
+}
+.coda-body .em { color: var(--accent-red); font-weight: 600; }
+/* 终章 sparkline：呼应封面，2030 = 数据延伸的形状 */
+.coda-spark {
+    display: flex; align-items: center; gap: 14px;
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 1px solid var(--gray-light);
+}
+.coda-spark .cap {
+    font-family: var(--type-sans);
+    font-size: var(--type-fine);
+    color: var(--gray-mid);
+    letter-spacing: 0.04em;
+}
+.coda-sign {
+    margin-top: 14px;
+    font-family: var(--type-sans);
+    font-size: var(--type-micro); font-weight: 500;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--gray-mid);
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="AI 编辑器市场：六款产品的证据 · Tufte 风 demo">
+
+<!-- 1. 封面 -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-top unfold">
+            <span>Market Evidence &middot; 2026 Q1</span>
+            <span>Frame <span class="num">01</span> / <span class="num">05</span></span>
+        </div>
+        <div class="cover-core unfold">
+            <p class="cover-epigraph">&ldquo;Above all else show the data.&rdquo;</p>
+            <h1 class="cover-title">六款产品，<br>一张<span class="red">表</span>就够了</h1>
+            <p class="cover-sub">AI 编辑器市场全景 &mdash; 不靠 bullet point，靠数据本身说话。<br>月活、付费率、ARPU、上下文窗口、自主性，并列于一处。</p>
+            <div class="cover-spark">
+                <!-- 封面 sparkline：市场规模 12 → 78 → 200+ 亿美元 -->
+                <svg width="200" height="46" viewBox="0 0 200 46" aria-label="市场规模走势 微缩图">
+                    <polyline points="4,40 70,33 136,12 196,2" fill="none" stroke="#2F4E78" stroke-width="1.6"/>
+                    <circle cx="4" cy="40" r="2.4" fill="#8A887F"/>
+                    <circle cx="70" cy="33" r="2.4" fill="#8A887F"/>
+                    <circle cx="136" cy="12" r="2.4" fill="#8A887F"/>
+                    <circle cx="196" cy="2" r="3" fill="#A4231E"/>
+                </svg>
+                <span class="spark-cap">市场规模 <span class="num">12</span> &rarr; <span class="num">78</span> &rarr; <span class="num">200+</span> 亿美元<br><span class="num">2023</span> &mdash; <span class="num">2025</span> &mdash; <span class="num">2027E</span></span>
+            </div>
+        </div>
+        <div class="cover-bottom unfold">
+            <span>A Longtext-to-Slides Demo</span>
+            <span>设计语言 &middot; Edward Tufte</span>
+        </div>
+    </div>
+    <div class="runner">
+        <span class="seg">Cover</span>
+        <span><span class="num">01</span> / <span class="num">05</span></span>
+    </div>
+</section>
+
+<!-- 2. 章节扉 PART 01 -->
+<section class="frame chapter-plate" data-title="PART 01 关键数据全景">
+    <div class="stage">
+        <div class="chapter-line unfold">Part&nbsp;&nbsp;01</div>
+        <h2 class="chapter-title unfold">关键数据全景</h2>
+        <div class="chapter-en unfold">The Evidence, Laid Side by Side</div>
+        <p class="chapter-lead unfold">市场从 <span class="num">2023</span> 年的 <span class="num">12</span> 亿美元增长到 <span class="num">2025</span> 年的 <span class="num">78</span> 亿。但真正的故事不在总量 &mdash;&mdash; 在<span class="em">结构</span>：付费率从 <span class="num">3%</span> 跳到 <span class="num">22%</span>，ARPU 从 <span class="num">60</span> 美元跳到 <span class="num">240</span>。下一页用一张表，让六款产品自己对质。</p>
+    </div>
+    <div class="runner">
+        <span class="seg">Part 01 &middot; Overview</span>
+        <span><span class="num">02</span> / <span class="num">05</span></span>
+    </div>
+</section>
+
+<!-- 3. 正文主体 · 六产品数据表（Tufte 招牌版式） -->
+<section class="frame data-frame" data-title="六款产品核心指标对比">
+    <div class="stage">
+        <div class="frame-head unfold">
+            <div class="kicker"><span class="red">Table 1</span> &nbsp;&middot;&nbsp; AI 编辑器核心指标 &middot; 2026 Q1</div>
+            <h2 class="lede">六款产品，同一坐标系下对质</h2>
+        </div>
+        <table class="tufte-table unfold">
+            <thead>
+                <tr>
+                    <th class="col-name">产品</th>
+                    <th>月活用户<span class="unit">万人</span></th>
+                    <th>付费率<span class="unit">%</span></th>
+                    <th>ARPU<span class="unit">美元 / 年</span></th>
+                    <th>上下文窗口<span class="unit">token</span></th>
+                    <th>自主性等级<span class="unit">L2 &mdash; L4</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-name"><span class="latin">Cursor</span><span class="sub">GUI 派 &middot; VS Code fork</span></td>
+                    <td>4,200</td>
+                    <td>28</td>
+                    <td>240</td>
+                    <td>200K</td>
+                    <td><span class="lvl-spark"><i class="on"></i><i class="on"></i><i></i></span><span class="lvl-tag">L3</span></td>
+                </tr>
+                <tr>
+                    <td class="col-name"><span class="latin">Windsurf</span><span class="sub">GUI 派 &middot; 原生 IDE</span></td>
+                    <td>1,800</td>
+                    <td>24</td>
+                    <td>180</td>
+                    <td><span class="peak">1M</span></td>
+                    <td><span class="lvl-spark"><i class="on"></i><i class="on"></i><i class="on-hi"></i></span><span class="lvl-tag">L4</span></td>
+                </tr>
+                <tr>
+                    <td class="col-name"><span class="latin">Claude Code</span><span class="sub">CLI 派 &middot; 反 IDE 实验</span></td>
+                    <td>2,400</td>
+                    <td><span class="peak">32</span></td>
+                    <td>200</td>
+                    <td><span class="peak">1M</span></td>
+                    <td><span class="lvl-spark"><i class="on"></i><i class="on"></i><i class="on-hi"></i></span><span class="lvl-tag">L4</span></td>
+                </tr>
+                <tr>
+                    <td class="col-name"><span class="latin">GitHub Copilot</span><span class="sub">老牌 &middot; 行级补全起家</span></td>
+                    <td><span class="peak">6,500</span></td>
+                    <td><span class="ref">18</span></td>
+                    <td><span class="ref">120</span></td>
+                    <td><span class="ref">64K</span></td>
+                    <td><span class="lvl-spark"><i class="on"></i><i></i><i></i></span><span class="lvl-tag">L2</span></td>
+                </tr>
+                <tr>
+                    <td class="col-name"><span class="latin">Zed AI</span><span class="sub">GUI 派 &middot; 高 ARPU</span></td>
+                    <td>380</td>
+                    <td>31</td>
+                    <td><span class="peak">280</span></td>
+                    <td>256K</td>
+                    <td><span class="lvl-spark"><i class="on"></i><i class="on"></i><i></i></span><span class="lvl-tag">L3</span></td>
+                </tr>
+                <tr>
+                    <td class="col-name"><span class="latin">Cline</span><span class="sub">CLI 派 &middot; 自主 Agent</span></td>
+                    <td>220</td>
+                    <td>19</td>
+                    <td>96</td>
+                    <td>200K</td>
+                    <td><span class="lvl-spark"><i class="on"></i><i class="on"></i><i class="on-hi"></i></span><span class="lvl-tag">L4</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="table-annot unfold">
+            <span><span class="swatch red"></span><b>红</b>：该列的峰值或风险点 &mdash; Claude Code 付费率最高，Copilot 各项垫底</span>
+            <span><span class="swatch blue"></span><b>蓝</b>：作参考的对照值</span>
+            <span>自主性微缩图：L2 单行补全 &middot; L3 多文件编辑 &middot; L4 长任务自主</span>
+        </div>
+    </div>
+    <div class="runner">
+        <span class="seg">Part 01 &middot; Table 1</span>
+        <span><span class="num">03</span> / <span class="num">05</span></span>
+    </div>
+</section>
+
+<!-- 4. 正文延伸 · Small Multiples + 金句 -->
+<section class="frame multiples-frame" data-title="四个结构性跃迁">
+    <div class="stage">
+        <div class="frame-head unfold">
+            <div class="kicker"><span class="red">Figure 1</span> &nbsp;&middot;&nbsp; Small Multiples &middot; 两年间的四个跃迁</div>
+            <h2 class="lede">不是增长，是结构重写</h2>
+        </div>
+        <!-- §1 Small Multiples：同坐标系并列四张微型对比图 -->
+        <div class="small-multiples unfold">
+            <div class="sm-cell">
+                <div class="sm-label">付费转化率</div>
+                <div class="sm-value"><span class="num">7.3</span><span class="x">&times;</span></div>
+                <div class="sm-bars">
+                    <div class="sm-bar-row"><span class="sm-bar-tag">旧</span><div class="sm-bar-track"><span class="sm-bar old" style="width:9%"></span></div></div>
+                    <div class="sm-bar-row"><span class="sm-bar-tag">新</span><div class="sm-bar-track"><span class="sm-bar new" style="width:66%"></span></div></div>
+                </div>
+                <div class="sm-desc"><span class="num">3%</span> &rarr; <span class="num">22%</span> &mdash; IDE 时代到 AI 时代</div>
+            </div>
+            <div class="sm-cell">
+                <div class="sm-label">单用户 ARPU</div>
+                <div class="sm-value"><span class="num">4.0</span><span class="x">&times;</span></div>
+                <div class="sm-bars">
+                    <div class="sm-bar-row"><span class="sm-bar-tag">旧</span><div class="sm-bar-track"><span class="sm-bar old" style="width:25%"></span></div></div>
+                    <div class="sm-bar-row"><span class="sm-bar-tag">新</span><div class="sm-bar-track"><span class="sm-bar new" style="width:100%"></span></div></div>
+                </div>
+                <div class="sm-desc"><span class="num">60</span> &rarr; <span class="num">240</span> 美元 / 年</div>
+            </div>
+            <div class="sm-cell">
+                <div class="sm-label">上下文窗口</div>
+                <div class="sm-value"><span class="num">15</span><span class="x">&times;</span></div>
+                <div class="sm-bars">
+                    <div class="sm-bar-row"><span class="sm-bar-tag">旧</span><div class="sm-bar-track"><span class="sm-bar old" style="width:6%"></span></div></div>
+                    <div class="sm-bar-row"><span class="sm-bar-tag">新</span><div class="sm-bar-track"><span class="sm-bar new" style="width:96%"></span></div></div>
+                </div>
+                <div class="sm-desc"><span class="num">64K</span> &rarr; <span class="num">1M</span> token</div>
+            </div>
+            <div class="sm-cell">
+                <div class="sm-label">任务时长中位数</div>
+                <div class="sm-value"><span class="num">18</span><span class="x">&times;</span></div>
+                <div class="sm-bars">
+                    <div class="sm-bar-row"><span class="sm-bar-tag">旧</span><div class="sm-bar-track"><span class="sm-bar old" style="width:5%"></span></div></div>
+                    <div class="sm-bar-row"><span class="sm-bar-tag">新</span><div class="sm-bar-track"><span class="sm-bar new" style="width:90%"></span></div></div>
+                </div>
+                <div class="sm-desc"><span class="num">90</span> 秒 &rarr; <span class="num">27</span> 分钟自主</div>
+            </div>
+        </div>
+        <div class="multiples-foot unfold">
+            <span class="annot">四张微型图共用同一坐标系 &mdash;&mdash; 灰条为 <span class="num">2024</span> 旧值，蓝条为 <span class="num">2026</span> 新值。眼睛扫一遍，四个量级跃迁同时入脑，无需图例。</span>
+        </div>
+        <blockquote class="epigraph unfold">
+            真正的竞争维度，已从「补全准不准」变成「<span class="em">能让 AI 独立完成多长的任务</span>」。
+            <span class="attr">&mdash; 三大结构性趋势之一</span>
+        </blockquote>
+    </div>
+    <div class="runner">
+        <span class="seg">Part 01 &middot; Figure 1</span>
+        <span><span class="num">04</span> / <span class="num">05</span></span>
+    </div>
+</section>
+
+<!-- 5. 终章 coda -->
+<section class="frame coda" data-title="终章">
+    <div class="stage">
+        <div class="coda-rule unfold"></div>
+        <div class="coda-kicker unfold">End &middot; Market Evidence &middot; 2026 Q1</div>
+        <h2 class="coda-headline unfold">数据已经摊开。<br>剩下的是<span class="red">判断</span>。</h2>
+        <p class="coda-body unfold">六款产品同框，四个跃迁并列 &mdash;&mdash; 没有装饰，没有 bullet，只有证据。谁先读懂<span class="em">自主性等级</span>与<span class="em">付费结构</span>，谁就拿到 <span class="num">2030</span> 年的位置。</p>
+        <div class="coda-spark unfold">
+            <svg width="170" height="34" viewBox="0 0 170 34" aria-label="自主性等级延伸 微缩图">
+                <polyline points="4,28 56,24 110,12 166,3" fill="none" stroke="#2F4E78" stroke-width="1.6"/>
+                <circle cx="4" cy="28" r="2.2" fill="#8A887F"/>
+                <circle cx="56" cy="24" r="2.2" fill="#8A887F"/>
+                <circle cx="110" cy="12" r="2.2" fill="#8A887F"/>
+                <circle cx="166" cy="3" r="3" fill="#A4231E"/>
+            </svg>
+            <span class="cap">自主性 L2 &rarr; L4，仍在向上延伸</span>
+        </div>
+        <div class="coda-sign unfold">A Longtext-to-Slides Demo &middot; Edward Tufte</div>
+    </div>
+    <div class="runner">
+        <span class="seg">End</span>
+        <span><span class="num">05</span> / <span class="num">05</span></span>
+    </div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">&larr;  /  &rarr;  &middot;  SPACE  &middot;  CLICK  &middot;  F</div>
+
+<script>
+/* ============== deck.js 内联（照抄 rams demo）============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

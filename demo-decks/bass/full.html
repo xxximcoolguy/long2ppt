@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Stay Hungry Stay Foolish · Bass 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+SC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #0d0b09);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #161310);
+    color: var(--stage-ink, #f3e3c0);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    /* Bass: 海报感大边距, 重心偏侧 */
+    padding: var(--frame-pad, 88px);
+    opacity: 0; visibility: hidden;
+    /* Bass: 硬切, 无柔和 fade — 用 clip 揭幕代替 translate */
+    transform: scale(1.02);
+    transition:
+        opacity 0.32s steps(3, end),
+        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0s linear 0.4s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: scale(1);
+    transition:
+        opacity 0.36s steps(3, end) 0.04s,
+        transform 0.46s cubic-bezier(0.16, 1, 0.3, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: scale(0.985); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 3;
+}
+
+/* ============== Bass 配色与字号系统 ============== */
+:root {
+    font-size: 14px;
+    /* Bass 铁律: 只 3 色 — 朱红 + 黑 + 米 */
+    --stage-void: #0d0b09;
+    --bass-black: #161310;     /* 海报黑底 */
+    --bass-red:   #d4341d;     /* 朱红 — Anatomy of a Murder 系 */
+    --bass-cream: #f3e3c0;     /* 米 — 海报底色变体 */
+    --stage-bg: var(--bass-black);
+    --stage-ink: var(--bass-cream);
+
+    /* Bass: 粗壮无衬线, 字体作图形 */
+    --type-display-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --type-body: 'Noto Sans SC', sans-serif;
+    --type-latin: 'Oswald', 'Noto Sans SC', sans-serif;  /* condensed sans */
+
+    /* 海报感字号阶梯 — 跳跃大, 标题极重 */
+    --type-poster: 9.2rem;
+    --type-display: 6.6rem;
+    --type-h1: 4.4rem;
+    --type-h2: 2.9rem;
+    --type-h3: 1.55rem;
+    --type-body-sz: 1.12rem;
+    --type-small: 0.92rem;
+    --type-tag: 0.82rem;
+
+    --leading-poster: 0.92;
+    --leading-tight: 1.04;
+    --leading-snug: 1.28;
+    --leading-cozy: 1.62;
+
+    --track-han: 0.005em;
+    --track-latin: 0.04em;
+    --track-tag: 0.34em;       /* Bass 字幕拉开字距 */
+
+    --frame-pad: 88px;
+}
+
+.frame { letter-spacing: var(--track-han); }
+.frame :lang(en), .frame .latin {
+    letter-spacing: var(--track-latin);
+    font-family: var(--type-latin, inherit);
+}
+
+/* ============== 撞色底板 / 几何剪影承托 ============== */
+/* 每帧一个核心 shape — 纯色硬切, 无渐变无阴影 */
+.block {
+    position: absolute; z-index: 1;
+    pointer-events: none;
+}
+.block--red { background: var(--bass-red); }
+.block--cream { background: var(--bass-cream); }
+.block--black { background: var(--bass-black); }
+
+/* 撕纸感: clip-path 锯齿边缘 */
+.torn-right {
+    clip-path: polygon(
+        0 0, 92% 0, 95% 7%, 89% 15%, 96% 24%, 90% 33%,
+        97% 42%, 91% 52%, 98% 61%, 90% 71%, 96% 80%, 89% 89%, 94% 100%, 0 100%);
+}
+.torn-left {
+    clip-path: polygon(
+        8% 0, 100% 0, 100% 100%, 11% 100%, 4% 91%, 10% 81%,
+        3% 71%, 9% 60%, 2% 50%, 10% 40%, 4% 30%, 11% 20%, 5% 9%);
+}
+.torn-bottom {
+    clip-path: polygon(
+        0 0, 100% 0, 100% 88%, 92% 95%, 84% 89%, 75% 97%, 66% 90%,
+        57% 98%, 48% 91%, 39% 99%, 30% 92%, 21% 99%, 12% 91%, 4% 98%, 0 90%);
+}
+
+/* ============== Runner & Cue ============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--type-latin); font-size: var(--type-tag);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    z-index: 6;
+}
+.runner--bottom { bottom: 34px; }
+.runner .runner-mark { display: inline-flex; align-items: center; gap: 0.6em; }
+.runner .runner-mark::before {
+    content: ''; width: 0; height: 0;
+    /* Bass: 几何记号 — 实心三角, 非圆点 */
+    border-left: 7px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+
+.cue {
+    display: inline-flex; align-items: center; gap: 0.7em;
+    font-family: var(--type-latin); font-weight: 600;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.cue .cue-dot {
+    width: 0.85em; height: 0.85em;
+    background: var(--bass-red);
+    /* 不规则四边形 — 手剪感 */
+    clip-path: polygon(0 12%, 88% 0, 100% 92%, 14% 100%);
+}
+
+/* ============== 揭幕动画: 块面切入, 非淡入 ============== */
+.cut {
+    opacity: 0;
+    transform: translateX(-22px);
+    transition:
+        opacity 0.01s linear,
+        transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.frame[data-state="active"] .cut { opacity: 1; transform: translateX(0); }
+.frame[data-state="active"] .cut:nth-child(1) { transition-delay: 0.08s; }
+.frame[data-state="active"] .cut:nth-child(2) { transition-delay: 0.16s; }
+.frame[data-state="active"] .cut:nth-child(3) { transition-delay: 0.24s; }
+.frame[data-state="active"] .cut:nth-child(4) { transition-delay: 0.32s; }
+.frame[data-state="active"] .cut:nth-child(5) { transition-delay: 0.40s; }
+.frame[data-state="active"] .cut:nth-child(6) { transition-delay: 0.48s; }
+
+/* ============== Rail — 几何方块导航 ============== */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 11px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 10px; height: 10px;
+    background: var(--bass-cream); opacity: 0.28;
+    border: none; padding: 0; cursor: pointer;
+    /* 倾斜方块 — Bass 几何 */
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    transition: opacity 0.2s, transform 0.2s, background 0.2s;
+}
+.rail .rail-pip:hover { opacity: 0.6; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--bass-red); opacity: 1;
+    transform: scale(1.7);
+}
+.hotkey-hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-latin);
+    font-size: 11px;
+    color: var(--bass-cream); opacity: 0.32;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+.accent-red { color: var(--bass-red); }
+.latin { letter-spacing: var(--track-latin); font-family: var(--type-latin); }
+
+/* ============== Frame 1 · 封面 front-frame ============== */
+/* 海报构图: 巨型朱红撕纸块占右 2/3, 标题压在交界, 重心偏左下 */
+.front-frame { background: var(--bass-cream); }
+.front-frame .block--red {
+    top: -4%; right: -2%;
+    width: 58%; height: 108%;
+}
+.front-frame .stage {
+    justify-content: space-between;
+    color: var(--bass-black);
+}
+.cover-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start;
+}
+.cover-kicker {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase; color: var(--bass-black);
+}
+.cover-tag {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-cream);
+    background: var(--bass-black);
+    padding: 0.45em 0.9em;
+}
+.cover-core { max-width: 66%; }
+.cover-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-poster);
+    color: var(--bass-black);
+}
+.cover-title .accent-red { color: var(--bass-red); }
+.cover-en {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-h2); line-height: var(--leading-tight);
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--bass-black);
+    margin-top: 0.42em;
+}
+.cover-foot {
+    display: flex; align-items: baseline; gap: 1.4em;
+    font-family: var(--type-latin); font-weight: 600;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-black);
+}
+.cover-foot .foot-bar {
+    flex: 0 0 64px; height: 6px; background: var(--bass-red);
+}
+/* 封面右块上的几何剪影: 米色圆 + 黑三角 = 标志性形态 */
+.cover-eye {
+    position: absolute; z-index: 4;
+    top: 30%; right: 9%;
+    width: 188px; height: 188px;
+    background: var(--bass-cream);
+    border-radius: 50%;
+}
+.cover-eye::after {
+    content: ''; position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -52%);
+    width: 0; height: 0;
+    border-left: 46px solid transparent;
+    border-right: 46px solid transparent;
+    border-bottom: 78px solid var(--bass-black);
+}
+
+/* ============== Frame 2 · 章节扉 chapter-plate ============== */
+/* 黑底, 巨型朱红三角剪影占据画面 = 视觉重锤 */
+.chapter-plate { background: var(--bass-black); }
+.chapter-plate .block--red {
+    /* 大三角剪影 */
+    top: 0; right: -8%;
+    width: 72%; height: 100%;
+    clip-path: polygon(38% 0, 100% 0, 100% 100%, 100% 100%);
+}
+.chapter-plate .block--cream {
+    /* 米色窄条压在三角斜边上 — 撞色硬切 */
+    bottom: 16%; left: 0;
+    width: 50%; height: 14px;
+}
+.chapter-plate .stage { justify-content: center; }
+.chapter-index {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: 1.05rem; letter-spacing: var(--track-tag);
+    text-transform: uppercase; color: var(--bass-red);
+    margin-bottom: 0.5em;
+}
+.chapter-no {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: 13rem; line-height: 0.82;
+    color: var(--bass-cream);
+    letter-spacing: -0.02em;
+}
+.chapter-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-h1); line-height: var(--leading-tight);
+    color: var(--bass-cream);
+    margin-top: 0.12em;
+}
+.chapter-en {
+    font-family: var(--type-latin); font-weight: 600;
+    font-size: var(--type-h3); text-transform: uppercase;
+    letter-spacing: var(--track-tag);
+    color: var(--bass-red);
+    margin-top: 0.9em;
+}
+
+/* ============== Frame 3 · 正文主体 ============== */
+/* 米底, 黑色撕纸块占左承托三段叙事, 朱红编号作钩子 */
+.body-frame { background: var(--bass-black); }
+.body-frame .block--black {
+    top: 0; left: -4%;
+    width: 40%; height: 100%;
+}
+.body-frame .block--red {
+    /* 朱红全高粗条 — Bass 撞色块, 贴右边缘不压正文 */
+    top: 0; right: 0;
+    width: 44px; height: 100%;
+}
+.body-frame .stage { color: var(--bass-cream); }
+.body-head {
+    display: flex; flex-direction: column; gap: 0.5em;
+    margin-bottom: 1.5em;
+}
+.body-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-h2); line-height: var(--leading-tight);
+    color: var(--bass-cream);
+}
+.body-title .accent-red { color: var(--bass-red); }
+.story-stack {
+    display: flex; flex-direction: column;
+    gap: 0;
+}
+.story-row {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    align-items: start;
+    padding: 22px 0;
+    border-top: 4px solid var(--bass-cream);
+}
+.story-row:last-child { border-bottom: 4px solid var(--bass-cream); }
+.story-no {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: 4.6rem; line-height: 0.82;
+    color: var(--bass-red);
+}
+.story-body { padding-left: 6px; }
+.story-name {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-h3); line-height: var(--leading-snug);
+    color: var(--bass-cream);
+    margin-bottom: 0.3em;
+}
+.story-name .latin {
+    display: block; font-weight: 600;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase; color: var(--bass-red);
+    margin-top: 0.25em;
+}
+.story-line {
+    font-family: var(--type-body); font-weight: 700;
+    font-size: var(--type-body-sz); line-height: var(--leading-cozy);
+    color: var(--bass-cream);
+    max-width: 46ch;
+}
+
+/* ============== Frame 4 · 金句 ============== */
+/* 朱红满底, 黑色撕纸大块压顶, 巨型引文剪贴排布, 重心偏侧 */
+.quote-frame { background: var(--bass-red); }
+.quote-frame .block--black {
+    /* 黑块只占上半, 不压底部引文 */
+    top: -6%; left: -6%;
+    width: 58%; height: 46%;
+}
+.quote-frame .stage { justify-content: flex-end; }
+.quote-mark {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-cream);
+    margin-bottom: 0.7em;
+}
+.quote-big {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: 4.7rem; line-height: 1.06;
+    color: var(--bass-cream);
+    max-width: 19ch;
+}
+/* 错位剪贴: 关键词块拎出来撞色 */
+.quote-big .clip {
+    display: inline-block;
+    background: var(--bass-cream);
+    color: var(--bass-red);
+    padding: 0 0.22em;
+    transform: translateY(0.06em) rotate(-1.5deg);
+}
+.quote-attr {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-black);
+    margin-top: 1.1em;
+}
+.quote-attr::before {
+    content: ''; display: inline-block;
+    width: 38px; height: 5px;
+    background: var(--bass-black);
+    vertical-align: middle; margin-right: 0.8em;
+}
+
+/* ============== Frame 5 · 终章 coda ============== */
+/* 黑底, 米色圆 + 朱红撕纸块, 标志性收尾形态 */
+.coda { background: var(--bass-black); }
+.coda .block--red {
+    top: 0; right: 0;
+    width: 30%; height: 100%;
+}
+.coda .block--cream {
+    /* 巨大米色圆 — 落日剪影, North by Northwest 式 */
+    bottom: -34%; right: 14%;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    z-index: 2;
+}
+.coda .stage { justify-content: center; }
+.coda-pre {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-red);
+    margin-bottom: 1.1em;
+}
+.coda-headline {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-poster); line-height: 1.0;
+    color: var(--bass-cream);
+    max-width: 11ch;
+}
+.coda-headline .accent-red {
+    color: var(--bass-black);
+    background: var(--bass-red);
+    padding: 0 0.14em;
+    /* inline-block + 受控行高: 防止内联背景在压紧行距下漫到上一行 */
+    display: inline-block;
+    line-height: 0.95;
+}
+.coda-en {
+    font-family: var(--type-latin); font-weight: 700;
+    font-size: var(--type-h2); line-height: var(--leading-tight);
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--bass-cream);
+    margin-top: 0.5em;
+}
+.coda-sign {
+    margin-top: 2.4em;
+    font-family: var(--type-latin); font-weight: 600;
+    font-size: var(--type-small); letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    color: var(--bass-red);
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="Stay Hungry Stay Foolish · Bass demo">
+
+<!-- 1. 封面 -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="block block--red torn-left"></div>
+    <div class="cover-eye"></div>
+    <div class="stage">
+        <div class="cover-top cut">
+            <span class="cover-kicker">Stanford · 2005</span>
+            <span class="cover-tag">Commencement</span>
+        </div>
+        <div class="cover-core cut">
+            <h1 class="cover-title">求知若<span class="accent-red">饥</span><br>虚心若愚</h1>
+            <div class="cover-en">Stay Hungry<br>Stay Foolish</div>
+        </div>
+        <div class="cover-foot cut">
+            <span class="foot-bar"></span>
+            <span>Steve Jobs</span>
+            <span>Three Stories</span>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin">01 / 05</span></div>
+</section>
+
+<!-- 2. 章节扉 PART 01 -->
+<section class="frame chapter-plate" data-title="PART 01 三个故事">
+    <div class="block block--red"></div>
+    <div class="block block--cream"></div>
+    <div class="stage">
+        <div class="chapter-index cut latin">PART · 01</div>
+        <div class="chapter-no cut latin">3</div>
+        <h2 class="chapter-title cut">三个故事</h2>
+        <div class="chapter-en cut">Three Stories · No Big Deal</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin">02 / 05</span></div>
+</section>
+
+<!-- 3. 正文主体 — 三段叙事 -->
+<section class="frame body-frame" data-title="三段叙事">
+    <div class="block block--black torn-right"></div>
+    <div class="block block--red"></div>
+    <div class="stage">
+        <div class="body-head cut">
+            <div class="cue"><span class="cue-dot"></span>His Life</div>
+            <h2 class="body-title">一生，<span class="accent-red">三个点</span></h2>
+        </div>
+        <div class="story-stack">
+            <article class="story-row cut">
+                <div class="story-no latin">01</div>
+                <div class="story-body">
+                    <h3 class="story-name">把点连起来<span class="latin">Connecting the Dots</span></h3>
+                    <p class="story-line">你无法预先连点，只能回头看时才看清。所以要相信，它们终会串起。</p>
+                </div>
+            </article>
+            <article class="story-row cut">
+                <div class="story-no latin">02</div>
+                <div class="story-body">
+                    <h3 class="story-name">爱与失去<span class="latin">Love and Loss</span></h3>
+                    <p class="story-line">被自己创办的公司开除。做出伟大事情的唯一方法，是热爱你所做的事。</p>
+                </div>
+            </article>
+            <article class="story-row cut">
+                <div class="story-no latin">03</div>
+                <div class="story-body">
+                    <h3 class="story-name">关于死亡<span class="latin">Death</span></h3>
+                    <p class="story-line">死亡是我们共同的归宿。你的时间有限，不要为别人而活。</p>
+                </div>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">STORIES</span><span class="latin">03 / 05</span></div>
+</section>
+
+<!-- 4. 金句 -->
+<section class="frame quote-frame" data-title="金句">
+    <div class="block block--black torn-bottom"></div>
+    <div class="stage">
+        <div class="quote-mark cut latin">Epigraph · On Death</div>
+        <blockquote class="quote-big cut">
+            你的时间有限，<br>别浪费它<span class="clip">活在</span><br>别人的人生里。
+        </blockquote>
+        <div class="quote-attr cut latin">Steve Jobs · 2005</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">QUOTE</span><span class="latin">04 / 05</span></div>
+</section>
+
+<!-- 5. 终章 -->
+<section class="frame coda" data-title="终章">
+    <div class="block block--red"></div>
+    <div class="block block--cream"></div>
+    <div class="stage">
+        <div class="coda-pre cut latin">The Whole Earth Catalog · Farewell</div>
+        <h1 class="coda-headline cut">求知若饥<br>虚心<span class="accent-red">若愚</span></h1>
+        <div class="coda-en cut">Stay Hungry · Stay Foolish</div>
+        <div class="coda-sign cut latin">A Longtext-to-Slides Demo · Bass</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin">05 / 05</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

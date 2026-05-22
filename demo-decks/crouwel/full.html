@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>2030 谁定义编辑器？ · Crouwel 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Archivo:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #DEDEDE);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #FFFFFF);
+    color: var(--stage-ink, #000000);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+/* ---- Crouwel: 网格本身成为视觉主角。每帧叠一层 16 列电网底纹 ---- */
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 80px);
+    opacity: 0; visibility: hidden;
+    /* Crouwel 反情绪化: 不滑动、不缓动夸张，只做克制位移 */
+    transform: translateX(24px);
+    transition:
+        opacity 0.4s linear,
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0s linear 0.4s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0);
+    transition:
+        opacity 0.4s linear 0.04s,
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-24px); }
+
+/* 16 列电网底纹 —— 让网格可见，Crouwel 视觉结构主义 */
+.frame::before {
+    content: ''; position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    top: var(--frame-pad); bottom: var(--frame-pad);
+    background-image:
+        repeating-linear-gradient(to right,
+            var(--grid-line) 0, var(--grid-line) 1px,
+            transparent 1px, transparent calc(100% / 16));
+    pointer-events: none; z-index: 0;
+}
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Crouwel 配色与 Unit=8 字号系统 ============== */
+:root {
+    font-size: 16px;
+    --stage-void: #DEDEDE;
+    --stage-bg: #FFFFFF;          /* 纯白 */
+    --stage-ink: #000000;         /* 纯黑 */
+    --stage-paper: #000000;
+    --stage-faint: #8C8C8C;       /* 中性灰 */
+    --grid-line: rgba(0,0,0,0.07);/* 电网底纹线 */
+    --rule: #000000;
+    --accent-key: #E30613;        /* Stedelijk 红 —— 一次只用一个强调色 */
+
+    --type-display-cn: 'Noto Sans SC', 'PingFang SC', sans-serif;
+    --type-body: 'Archivo', 'Noto Sans SC', sans-serif;
+    --type-latin: 'Archivo', sans-serif;
+    --type-mono: 'Share Tech Mono', monospace; /* 电网/点阵感数字 */
+
+    /* Unit=8 系统: 字号全部走 8 的倍数 */
+    --u: 8px;
+    --type-mega: 144px;   /* 18u —— 电网风封面大字 */
+    --type-display: 96px; /* 12u */
+    --type-h1: 64px;      /* 8u  */
+    --type-h2: 40px;      /* 5u  */
+    --type-h3: 24px;      /* 3u  */
+    --type-body-sz: 16px; /* 2u  */
+    --type-small: 14px;
+    --type-cap: 12px;     /* 1.5u */
+
+    --leading-grid: 1.25; /* 字号 × 1.25 = 8 的倍数 */
+    --leading-body: 1.5;
+
+    --track-cap: 0.28em;  /* 字距 —— Crouwel 标签拉开 */
+    --track-han: 0.02em;
+
+    --frame-pad: 80px;    /* 10u —— 角落锚定的留白边框 */
+}
+
+/* Crouwel 字体策略: 拉丁/数字走单位制无衬线 + 等宽 mono */
+.frame :lang(en), .frame .latin { font-family: var(--type-latin); }
+.frame .num { font-family: var(--type-mono); font-variant-numeric: tabular-nums; }
+
+/* ============== Runner —— 角落锚定的网格坐标 ============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--type-mono); font-size: var(--type-cap);
+    color: var(--stage-faint);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    z-index: 5;
+}
+.runner--bottom { bottom: 32px; }
+.runner .runner-mark { display: inline-flex; align-items: baseline; gap: 0.8em; }
+.runner .runner-mark::before {
+    content: ''; width: 8px; height: 8px;   /* 1u 实心方块 —— 直角 */
+    background: var(--accent-key); display: inline-block;
+}
+
+/* ============== 通用结构元件 ============== */
+/* cue: 章节/类别标签 —— 单色方块 + 拉开字距，左对齐角落锚定 */
+.cue {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-family: var(--type-mono);
+    color: var(--stage-ink);
+    font-size: var(--type-cap);
+    letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+}
+.cue::before {
+    content: ''; width: 16px; height: 16px;  /* 2u 红方块 */
+    background: var(--accent-key); display: block;
+}
+/* lede: 帧内主标题 */
+.lede {
+    font-family: var(--type-display-cn);
+    font-weight: 900; font-size: var(--type-h1);
+    line-height: var(--leading-grid);
+    color: var(--stage-ink);
+    letter-spacing: var(--track-han);
+    max-width: 18ch;
+}
+.deck-meta {
+    font-family: var(--type-body);
+    font-size: var(--type-body-sz);
+    line-height: var(--leading-body);
+    color: var(--stage-faint);
+    max-width: 56ch;
+    font-weight: 400;
+}
+
+/* ============== Unfold animation —— 克制: 仅淡入，无位移夸张 ============== */
+.unfold {
+    opacity: 0;
+    transition: opacity 0.4s linear;
+}
+.frame[data-state="active"] .unfold { opacity: 1; }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.06s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.14s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.22s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.30s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.38s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.46s; }
+.frame[data-state="active"] .unfold:nth-child(7) { transition-delay: 0.54s; }
+.frame[data-state="active"] .unfold:nth-child(8) { transition-delay: 0.62s; }
+
+/* ============== Rail —— 直角方块 pip ============== */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 8px; height: 8px; border-radius: 0;  /* 1u 方块，直角 */
+    background: var(--stage-ink); opacity: 0.18;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.2s linear, background 0.2s linear;
+}
+.rail .rail-pip:hover { opacity: 0.45; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-key); opacity: 1;
+    /* Crouwel 反情绪化: 不放大、不缩放，只换色 */
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-mono);
+    font-size: 11px;
+    color: var(--stage-faint); opacity: 0.5;
+    letter-spacing: 0.24em;
+    pointer-events: none;
+}
+
+.accent-key { color: var(--accent-key); }
+.num { font-family: var(--type-mono); font-variant-numeric: tabular-nums; }
+
+/* ============== Layout: front-frame —— 电网风纪念碑大字 ============== */
+.front-frame .stage { justify-content: space-between; align-items: stretch; }
+.cover-top {
+    display: flex; justify-content: space-between;
+    font-family: var(--type-mono); font-size: var(--type-cap);
+    color: var(--stage-ink); letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--rule);   /* 网格分割线 */
+}
+.cover-core { display: flex; flex-direction: column; }
+.cover-stamp {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--type-mono); font-size: var(--type-cap);
+    letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    color: var(--stage-ink);
+    margin-bottom: 32px;
+}
+.cover-stamp::before {
+    content: ''; width: 16px; height: 16px;
+    background: var(--accent-key); display: block;
+}
+/* 电网风主标题: 每字一个网格单元，超大、紧排、纯结构 */
+.cover-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-mega);
+    line-height: 1.0;
+    color: var(--stage-ink);
+    letter-spacing: 0.04em;   /* 像素电网: 字与字留出方格间隙 */
+    text-transform: none;
+}
+.cover-sub {
+    font-family: var(--type-body); font-weight: 400;
+    font-size: var(--type-h3); color: var(--stage-ink);
+    max-width: 40ch;
+    line-height: var(--leading-grid);
+    margin-top: 24px;
+    letter-spacing: var(--track-han);
+}
+.cover-bottom {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--type-mono); font-size: var(--type-cap);
+    color: var(--stage-faint); letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule);
+}
+
+/* ============== Layout: chapter-plate —— 角落锚定 + 巨型编号 ============== */
+.chapter-plate .stage { justify-content: flex-end; align-items: stretch; }
+.chapter-grid {
+    display: grid; grid-template-columns: repeat(16, 1fr);
+    align-items: end;
+}
+.chapter-numblock {
+    grid-column: 1 / span 6;
+}
+.chapter-bignum {
+    font-family: var(--type-mono);
+    font-size: var(--type-mega); line-height: 0.9;
+    color: var(--accent-key);
+    letter-spacing: -0.02em;
+}
+.chapter-meta { grid-column: 8 / span 9; }
+.chapter-num {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--type-mono); color: var(--stage-ink);
+    font-size: var(--type-cap);
+    letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+}
+.chapter-num::after {
+    content: ''; flex: 1; height: 2px; background: var(--rule);
+}
+.chapter-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-grid);
+    color: var(--stage-ink);
+    letter-spacing: var(--track-han);
+}
+.chapter-en {
+    font-family: var(--type-mono); color: var(--stage-faint);
+    font-size: var(--type-small); margin-top: 24px; font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+.chapter-lead {
+    font-family: var(--type-body);
+    font-size: var(--type-body-sz); color: var(--stage-ink);
+    margin-top: 32px; max-width: 52ch;
+    line-height: var(--leading-body);
+    padding-left: 20px; border-left: 2px solid var(--accent-key);
+    font-weight: 400;
+}
+
+/* ============== Layout: atlas —— 数据网格，6 格走 16 列 ============== */
+.atlas-head {
+    display: flex; flex-direction: column; gap: 16px;
+    margin-bottom: 40px;
+}
+.atlas {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 2px solid var(--rule);
+    border-left: 2px solid var(--rule);
+}
+.atlas-item {
+    border-right: 2px solid var(--rule);
+    border-bottom: 2px solid var(--rule);
+    padding: 24px;
+    display: flex; flex-direction: column;
+}
+.atlas-tag {
+    font-family: var(--type-mono); color: var(--stage-ink);
+    font-size: var(--type-cap); font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+.atlas-number {
+    font-family: var(--type-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-key);
+    font-size: 56px; font-weight: 400;   /* 7u */
+    line-height: 1.0; margin-bottom: 16px;
+    letter-spacing: -0.02em;
+}
+.atlas-name {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-h3); line-height: var(--leading-grid);
+    color: var(--stage-ink); margin-bottom: 8px;
+    letter-spacing: var(--track-han);
+}
+.atlas-desc {
+    font-family: var(--type-body);
+    font-size: var(--type-small); color: var(--stage-faint);
+    line-height: var(--leading-body); font-weight: 400;
+}
+
+/* ============== Layout: dialog —— 16 列对半剖面 ============== */
+.dialog-head-row {
+    display: flex; flex-direction: column; gap: 16px;
+    margin-bottom: 40px;
+}
+.dialog {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-top: 2px solid var(--rule);
+}
+.dialog-pane {
+    padding: 32px 32px 0 0;
+}
+.dialog-pane:nth-child(2) {
+    padding-left: 32px;
+    border-left: 2px solid var(--rule);
+}
+.dialog-headline {
+    font-family: var(--type-display-cn); color: var(--stage-ink);
+    font-size: var(--type-h3); font-weight: 700;
+    letter-spacing: var(--track-han);
+    padding-bottom: 16px; margin-bottom: 24px;
+    border-bottom: 2px solid var(--rule);
+}
+.dialog-headline .latin {
+    display: block; font-family: var(--type-mono);
+    color: var(--accent-key); font-weight: 400;
+    font-size: var(--type-cap); letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.dialog-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+.dialog-list li {
+    font-family: var(--type-body);
+    font-size: var(--type-body-sz); color: var(--stage-ink);
+    line-height: var(--leading-body);
+    padding-left: 24px; position: relative;
+    font-weight: 400;
+}
+.dialog-list li::before {
+    content: ''; position: absolute;
+    left: 0; top: 0.55em;
+    width: 8px; height: 8px;          /* 1u 方块 marker */
+    background: var(--stage-ink);
+}
+.dialog-list li.key::before { background: var(--accent-key); }
+.dialog-list li b { color: var(--accent-key); font-weight: 600; }
+
+/* ============== Layout: coda —— 终章纪念碑 ============== */
+.coda .stage { justify-content: space-between; align-items: stretch; }
+.coda-top {
+    display: flex; justify-content: space-between;
+    font-family: var(--type-mono); font-size: var(--type-cap);
+    color: var(--stage-ink); letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--rule);
+}
+.coda-core { display: flex; flex-direction: column; }
+.coda-headline {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-grid);
+    color: var(--stage-ink);
+    margin-bottom: 32px; letter-spacing: var(--track-han);
+}
+.coda-headline .accent-key { color: var(--accent-key); }
+.coda-post {
+    font-family: var(--type-body); font-weight: 400;
+    font-size: var(--type-h3); color: var(--stage-ink);
+    max-width: 44ch; line-height: var(--leading-grid);
+    letter-spacing: var(--track-han);
+}
+.coda-sign {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--type-mono); color: var(--stage-ink);
+    font-size: var(--type-cap); font-weight: 400;
+    letter-spacing: var(--track-cap);
+    text-transform: uppercase;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule);
+}
+.coda-sign::before {
+    content: ''; width: 16px; height: 16px;
+    background: var(--accent-key); display: block;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="AI 编辑器市场全景与产品规划摘要 2026">
+
+<!-- 1. 封面 -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-top unfold">
+            <span class="latin">DECK · 2026.05</span>
+            <span class="latin">CROUWEL EDITION</span>
+        </div>
+        <div class="cover-core unfold">
+            <span class="cover-stamp">Market Brief · 01 / 05</span>
+            <h1 class="cover-title">谁定义<br>编辑<span class="accent-key">器</span></h1>
+            <p class="cover-sub">AI 编辑器市场全景与产品规划摘要 —— 从「光标中心」到「对话中心」的范式转移。</p>
+        </div>
+        <div class="cover-bottom unfold">
+            <span class="latin">A LONGTEXT-TO-SLIDES DEMO</span>
+            <span class="latin">2030 / OUTLOOK</span>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin num">01 / 05</span></div>
+</section>
+
+<!-- 2. PART 01 章节扉 -->
+<section class="frame chapter-plate" data-title="PART 01 范式转移">
+    <div class="stage">
+        <div class="chapter-grid">
+            <div class="chapter-numblock unfold">
+                <div class="chapter-bignum num">01</div>
+            </div>
+            <div class="chapter-meta">
+                <div class="chapter-num unfold latin">PART 01</div>
+                <h2 class="chapter-title unfold">范式转移</h2>
+                <div class="chapter-en unfold latin">The Paradigm Shift</div>
+                <p class="chapter-lead unfold">从「人写代码、机器执行」到「人提需求、机器写代码、人审查」。编辑器的中心不再是光标，而是对话上下文。</p>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin num">02 / 05</span></div>
+</section>
+
+<!-- 3. 关键数据网格（正文主体） -->
+<section class="frame" data-title="六大关键数字">
+    <div class="stage">
+        <div class="atlas-head">
+            <div class="cue unfold">KEY METRICS · 六大关键数字</div>
+            <h2 class="lede unfold">市场重构的量化证据</h2>
+        </div>
+        <div class="atlas">
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">01 · USERS</div>
+                <div class="atlas-number num">7×</div>
+                <div class="atlas-name">用户增长倍数</div>
+                <div class="atlas-desc">从 VS Code 时代到 AI 编辑器</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">02 · REVENUE</div>
+                <div class="atlas-number num">6.5×</div>
+                <div class="atlas-name">市场规模扩张</div>
+                <div class="atlas-desc">2023 年 12 亿至 2025 年 78 亿美元</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">03 · PAID</div>
+                <div class="atlas-number num">22%</div>
+                <div class="atlas-name">付费转化率</div>
+                <div class="atlas-desc">从传统 IDE 时代的 3% 跃升</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">04 · ARPU</div>
+                <div class="atlas-number num">4×</div>
+                <div class="atlas-name">ARPU 跳升</div>
+                <div class="atlas-desc">60 至 240 美元 / 年</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">05 · CONTEXT</div>
+                <div class="atlas-number num">15×</div>
+                <div class="atlas-name">上下文窗口</div>
+                <div class="atlas-desc">从 64K 扩张至 1M token</div>
+            </article>
+            <article class="atlas-item unfold">
+                <div class="atlas-tag latin">06 · COST</div>
+                <div class="atlas-number num">−80%</div>
+                <div class="atlas-name">模型推理成本</div>
+                <div class="atlas-desc">两年内单 token 价格下降</div>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">DATA</span><span class="latin num">03 / 05</span></div>
+</section>
+
+<!-- 4. 竞品剖面（正文主体 / 对比） -->
+<section class="frame" data-title="竞品深度剖面">
+    <div class="stage">
+        <div class="dialog-head-row">
+            <div class="cue unfold">CROSS-SECTION · 竞品深度剖面</div>
+            <h2 class="lede unfold">护城河在哪里</h2>
+        </div>
+        <div class="dialog">
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-headline"><span class="latin">PRODUCT A · GUI 派</span>Cursor · 增长之王</h3>
+                <ul class="dialog-list">
+                    <li>4200 万月活 · 28% 付费率</li>
+                    <li>VS Code fork + 优秀对话产品体验</li>
+                    <li>核心能力依赖底层模型（Claude / GPT）</li>
+                    <li class="key"><b>护城河在融化</b> · 体验是最易复制的维度</li>
+                </ul>
+            </div>
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-headline"><span class="latin">PRODUCT B · CLI 派</span>Claude Code · 反 IDE 实验</h3>
+                <ul class="dialog-list">
+                    <li>2400 万月活 · <b>32% 付费率（全行业最高）</b></li>
+                    <li>不做 IDE · 做 CLI + Skill + Hook + Agent</li>
+                    <li>终端原生用户里渗透率极高</li>
+                    <li class="key"><b>L4 自主性</b> · 编辑器是历史包袱</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COMPARE</span><span class="latin num">04 / 05</span></div>
+</section>
+
+<!-- 5. 终章 coda -->
+<section class="frame coda" data-title="终章">
+    <div class="stage">
+        <div class="coda-top unfold">
+            <span class="latin">END · MARKET BRIEF</span>
+            <span class="latin">2026.05</span>
+        </div>
+        <div class="coda-core unfold">
+            <h1 class="coda-headline">这是一场<br>十年<span class="accent-key">战争</span></h1>
+            <p class="coda-post">谁先理解「自主性等级」与「分发护城河」，谁就能在 2030 年的市场拿到决定性的位置。</p>
+        </div>
+        <div class="coda-sign unfold latin">A LONGTEXT-TO-SLIDES DEMO · CROUWEL</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin num">05 / 05</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

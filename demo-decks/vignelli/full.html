@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>2030 谁定义编辑器？ · Vignelli 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #000000);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #FFFFFF);
+    color: var(--stage-ink, #000000);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 64px);
+    opacity: 0; visibility: hidden;
+    transform: translateX(36px);
+    /* Vignelli: 转场克制 —— 不戏剧化，纯粹切换 */
+    transition:
+        opacity 0.4s linear,
+        transform 0.4s cubic-bezier(0.25, 0, 0, 1),
+        visibility 0s linear 0.4s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0);
+    transition:
+        opacity 0.42s linear 0.04s,
+        transform 0.42s cubic-bezier(0.25, 0, 0, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-36px); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: var(--stage-gap, 24px);
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Vignelli 配色与字号系统 ============== */
+:root {
+    font-size: 14px;
+    /* 母语三色：黑 · 白 · 红 —— 结构色，非情绪色 */
+    --stage-void: #000000;   /* 黑 */
+    --stage-bg: #FFFFFF;     /* 白 */
+    --stage-ink: #000000;    /* 黑 字 */
+    --stage-paper: #000000;  /* 黑 标题 */
+    --stage-faint: #000000;  /* Vignelli 不用灰色弱化，靠留白与字重分层 */
+    --accent-key: #E1261C;   /* 纯红 —— 唯一强调色 */
+    --rule-heavy: #000000;   /* 粗黑结构线 */
+
+    /* 字体：六字体白名单中选 Helvetica；中文配 Noto Sans SC */
+    --type-display-cn: 'Noto Sans SC', Helvetica, 'Helvetica Neue', Arial, sans-serif;
+    --type-body: 'Noto Sans SC', Helvetica, 'Helvetica Neue', Arial, sans-serif;
+    --type-latin: Helvetica, 'Helvetica Neue', Arial, sans-serif;
+
+    /* Vignelli: 每页 ≤ 2 个字号。全局只保留两套——标题级 + 正文级。
+       标题:正文 ≈ 2:1 ~ 3:1，绝不极端 */
+    --type-display: 4.6rem;  /* 封面/终章大标题 */
+    --type-h1: 3.4rem;       /* 章节扉标题 */
+    --type-h2: 2.0rem;       /* 内文主标题 */
+    --type-body-size: 1.0rem;
+    --type-label: 0.82rem;   /* Helvetica 大写小标签 */
+
+    --leading-tight: 1.08;
+    --leading-snug: 1.32;
+    --leading-read: 1.62;
+
+    --track-han: 0.01em;
+    --track-latin: 0.01em;
+    --track-label: 0.26em;   /* Helvetica 全大写标签拉宽字距 */
+
+    --frame-pad: 64px;       /* 边距小，制造边缘张力（页面 5%）*/
+    --stage-gap: 24px;
+    --col-gap: 0px;          /* 分栏靠粗黑线分隔，不靠间隙 */
+}
+
+.frame { letter-spacing: var(--track-han); }
+.frame :lang(en), .frame .latin, .frame .num {
+    letter-spacing: var(--track-latin);
+    font-family: var(--type-latin, inherit);
+}
+
+/* ============== Runner —— 出版物页眉/页脚刊头 ============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--type-latin); font-size: var(--type-label);
+    color: var(--stage-ink);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    font-weight: 700;
+    z-index: 5;
+}
+.runner--top { top: 30px; }
+.runner--bottom {
+    bottom: 28px;
+    padding-top: 12px;
+    border-top: 2px solid var(--rule-heavy);   /* 页脚上方粗黑分隔线 */
+}
+.runner .runner-mark { display: inline-flex; align-items: center; gap: 0.6em; }
+.runner .runner-mark::before {
+    content: ''; width: 9px; height: 9px;
+    background: var(--accent-key);             /* 红方块，无圆角 */
+}
+
+/* ============== 通用排版元素 ============== */
+/* Helvetica 全大写小标签 —— Vignelli 招牌结构标记 */
+.cue {
+    display: block;
+    font-family: var(--type-latin); font-style: normal;
+    color: var(--stage-ink);
+    font-size: var(--type-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    font-weight: 700;
+    padding-bottom: 10px;
+    border-bottom: 4px solid var(--rule-heavy);  /* 粗黑线作结构 */
+}
+.cue .accent-key { color: var(--accent-key); }
+
+/* 内文主标题 —— 一页一个，左对齐 */
+.lede {
+    font-family: var(--type-display-cn);
+    font-weight: 900; font-size: var(--type-h2);
+    line-height: var(--leading-snug);
+    color: var(--stage-paper);
+    max-width: 26ch;
+}
+.lede .accent-key { color: var(--accent-key); }
+
+.deck-meta {
+    font-family: var(--type-body);
+    font-size: var(--type-body-size);
+    line-height: var(--leading-read);
+    color: var(--stage-ink);
+    max-width: 56ch;
+    font-weight: 400;
+}
+
+/* ============== Unfold animation —— 极克制，仅淡入 ============== */
+.unfold {
+    opacity: 0;
+    transition: opacity 0.45s linear;
+}
+.frame[data-state="active"] .unfold { opacity: 1; }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.06s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.14s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.22s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.30s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.38s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.46s; }
+.frame[data-state="active"] .unfold:nth-child(7) { transition-delay: 0.54s; }
+.frame[data-state="active"] .unfold:nth-child(8) { transition-delay: 0.62s; }
+
+/* ============== Rail —— 方形导航点（无圆角）============== */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 9px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 8px; height: 8px; border-radius: 0;   /* 直角 */
+    background: #FFFFFF;
+    border: 1px solid #000000; padding: 0; cursor: pointer;
+    transition: background 0.2s linear;
+}
+.rail .rail-pip:hover { background: #000000; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-key);
+    border-color: var(--accent-key);
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-latin);
+    font-size: 11px;
+    color: #FFFFFF;
+    letter-spacing: 0.24em;
+    pointer-events: none;
+    font-weight: 700;
+}
+
+.accent-key { color: var(--accent-key); }
+.latin { letter-spacing: var(--track-latin); font-family: var(--type-latin); }
+.num { font-family: var(--type-latin); font-variant-numeric: tabular-nums; }
+
+/* ============== Layout: front-frame —— 封面 ============== */
+.front-frame .stage { justify-content: flex-start; align-items: stretch; text-align: left; gap: 0; }
+/* 顶部刊头横线 */
+.cover-masthead {
+    display: flex; justify-content: space-between; align-items: baseline;
+    width: 100%;
+    font-family: var(--type-latin); font-size: var(--type-label);
+    color: var(--stage-ink); letter-spacing: var(--track-label);
+    text-transform: uppercase; font-weight: 700;
+    padding-bottom: 12px;
+    border-bottom: 6px solid var(--rule-heavy);   /* 封面顶部粗黑刊头线 */
+}
+.cover-core {
+    display: flex; flex-direction: column;
+    flex: 1; justify-content: center;
+    padding: 18px 0;
+}
+/* 红色出版物分类标 —— 实心红块白字，无边框无圆角 */
+.cover-stamp {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 0.34em 0.8em;
+    background: var(--accent-key);
+    color: #FFFFFF;
+    font-family: var(--type-latin); font-size: var(--type-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 26px;
+}
+.cover-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    letter-spacing: -0.005em;
+}
+.cover-title .accent-key { color: var(--accent-key); }
+.cover-sub {
+    font-family: var(--type-body); font-weight: 400;
+    font-size: var(--type-body-size); color: var(--stage-ink);
+    max-width: 42ch;
+    line-height: var(--leading-read);
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule-heavy);
+}
+
+/* ============== Layout: chapter-plate —— 章节扉 ============== */
+.chapter-plate .stage { justify-content: center; align-items: stretch; gap: 0; }
+/* PART 编号 —— 红色巨大数字 + 横线 */
+.chapter-num {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: var(--type-latin); color: var(--stage-ink);
+    font-size: var(--type-label); font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    padding-bottom: 14px;
+    border-bottom: 6px solid var(--rule-heavy);
+}
+.chapter-num .part-no {
+    font-size: 2.4rem; font-weight: 700;
+    color: var(--accent-key);
+    letter-spacing: 0;
+}
+.chapter-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-h1); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    margin-top: 30px;
+    letter-spacing: -0.005em;
+}
+.chapter-en {
+    font-family: var(--type-latin); color: var(--stage-ink);
+    font-size: var(--type-label); margin-top: 18px; font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+}
+.chapter-lead {
+    font-family: var(--type-body); font-size: var(--type-body-size);
+    color: var(--stage-ink);
+    margin-top: 26px; max-width: 50ch;
+    line-height: var(--leading-read);
+    font-weight: 400;
+}
+
+/* ============== Layout: 出版物网格 —— 数据网格 ============== */
+/* 三列纵向分栏，列间用粗黑竖线分隔 */
+.grid-data {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    margin-top: 28px;
+    border-top: 4px solid var(--rule-heavy);
+}
+.grid-data .cell {
+    padding: 22px 26px 6px 0;
+}
+.grid-data .cell + .cell {
+    padding-left: 26px;
+    border-left: 2px solid var(--rule-heavy);   /* 列分隔竖线 */
+}
+.cell-label {
+    font-family: var(--type-latin); color: var(--stage-ink);
+    font-size: var(--type-label); font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+}
+.cell-figure {
+    font-family: var(--type-latin); font-variant-numeric: tabular-nums;
+    color: var(--accent-key);                    /* 关键数字用红 */
+    font-size: 3.2rem; font-weight: 700;
+    line-height: 1; margin: 0.32em 0 0.34em;
+    letter-spacing: -0.01em;
+}
+.cell-name {
+    font-family: var(--type-display-cn); font-weight: 700;
+    font-size: var(--type-body-size); line-height: var(--leading-snug);
+    color: var(--stage-paper); margin-bottom: 0.5em;
+}
+.cell-desc {
+    font-family: var(--type-body);
+    font-size: var(--type-body-size);
+    color: var(--stage-ink);
+    line-height: var(--leading-read);
+    font-weight: 400;
+}
+
+/* ============== Layout: dialog —— 两栏对照，中间粗黑竖线 ============== */
+.dialog {
+    display: grid; grid-template-columns: 1fr 1fr;
+    margin-top: 26px;
+    border-top: 4px solid var(--rule-heavy);
+}
+.dialog-pane { padding: 22px 30px 4px 0; }
+.dialog-pane + .dialog-pane {
+    padding-left: 32px;
+    border-left: 3px solid var(--rule-heavy);   /* 强烈水平/垂直分栏线 */
+}
+.dialog-head {
+    font-family: var(--type-display-cn); color: var(--stage-paper);
+    font-size: var(--type-h2); font-weight: 900;
+    line-height: var(--leading-snug);
+    padding-bottom: 0.55em; margin-bottom: 0.85em;
+    border-bottom: 2px solid var(--rule-heavy);
+}
+.dialog-head .latin {
+    display: block; font-family: var(--type-latin);
+    color: var(--accent-key); font-weight: 700;
+    font-size: var(--type-label); letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    margin-bottom: 0.55em;
+}
+.dialog-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.dialog-list li {
+    font-family: var(--type-body);
+    font-size: var(--type-body-size); color: var(--stage-ink);
+    line-height: var(--leading-read);
+    padding-left: 1.5em; position: relative;
+    font-weight: 400;
+}
+/* 列表标记：实心红方块，无圆点无图标 */
+.dialog-list li::before {
+    content: ''; position: absolute;
+    left: 0; top: 0.6em;
+    width: 8px; height: 8px; background: var(--accent-key);
+}
+.dialog-list li b { color: var(--accent-key); font-weight: 700; }
+
+/* ============== Layout: ledger —— 数据表（无网格线，靠对齐与留白）====== */
+.ledger {
+    margin-top: 26px;
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 4px solid var(--rule-heavy);
+    border-bottom: 4px solid var(--rule-heavy);
+}
+.ledger thead th {
+    font-family: var(--type-latin);
+    font-size: var(--type-label); font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--stage-ink);
+    text-align: right;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--rule-heavy);
+}
+.ledger thead th:first-child { text-align: left; }
+.ledger tbody td {
+    font-family: var(--type-body);
+    font-size: var(--type-body-size);
+    color: var(--stage-ink);
+    text-align: right;
+    padding: 11px 14px;
+    font-weight: 400;
+}
+.ledger tbody td:first-child {
+    text-align: left;
+    font-family: var(--type-display-cn);
+    font-weight: 700;
+    color: var(--stage-paper);
+}
+.ledger tbody td.num { font-family: var(--type-latin); font-variant-numeric: tabular-nums; }
+.ledger tbody tr + tr td { border-top: 1px solid var(--rule-heavy); }
+.ledger tbody td .hl { color: var(--accent-key); font-weight: 700; }
+
+/* ============== Layout: coda —— 终章 ============== */
+.coda .stage { justify-content: center; text-align: left; align-items: stretch; gap: 0; }
+.coda-pre {
+    font-family: var(--type-latin); color: var(--stage-ink);
+    font-size: var(--type-label); font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    padding-bottom: 14px;
+    border-bottom: 6px solid var(--rule-heavy);
+}
+.coda-headline {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    margin-top: 32px;
+    letter-spacing: -0.005em;
+    max-width: 16ch;
+}
+.coda-headline .accent-key { color: var(--accent-key); }
+.coda-post {
+    font-family: var(--type-body); font-weight: 400;
+    font-size: var(--type-body-size); color: var(--stage-ink);
+    max-width: 46ch; line-height: var(--leading-read);
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule-heavy);
+}
+.coda-sign {
+    margin-top: 40px;
+    font-family: var(--type-latin); color: var(--stage-ink);
+    font-size: var(--type-label); font-weight: 700;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+}
+.coda-sign::before {
+    content: ''; display: inline-block;
+    width: 28px; height: 9px;
+    background: var(--accent-key);
+    vertical-align: middle; margin-right: 13px;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="AI 编辑器市场全景与产品规划摘要 2026">
+
+<!-- 1. 封面 -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-masthead unfold">
+            <span class="latin">MARKET BRIEF</span>
+            <span class="latin">2026.05 · 01 / 05</span>
+        </div>
+        <div class="cover-core">
+            <span class="cover-stamp unfold latin">编辑器市场全景</span>
+            <h1 class="cover-title unfold">2030<br>谁定义编辑<span class="accent-key">器</span></h1>
+            <p class="cover-sub unfold">AI 编辑器市场全景与产品规划摘要。从「光标中心」到「对话中心」的范式转移。</p>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin">01 / 05</span></div>
+</section>
+
+<!-- 2. 章节扉 PART 01 -->
+<section class="frame chapter-plate" data-title="PART 01 范式转移">
+    <div class="stage">
+        <div class="chapter-num unfold">
+            <span class="latin">PART <span class="part-no">01</span></span>
+            <span class="latin">THE PARADIGM SHIFT</span>
+        </div>
+        <h2 class="chapter-title unfold">范式转移</h2>
+        <div class="chapter-en unfold latin">From Cursor-Centric To Context-Centric</div>
+        <p class="chapter-lead unfold">编辑器从「人写代码、机器执行」变为「人提需求、机器写代码、人审查」。它不再以光标位置为中心，而以对话上下文为中心。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin">02 / 05</span></div>
+</section>
+
+<!-- 3. 正文主体 关键数据 -->
+<section class="frame" data-title="关键数据全景">
+    <div class="stage">
+        <div class="cue unfold latin">KEY METRICS <span class="accent-key">·</span> 市场重构的量化证据</div>
+        <h2 class="lede unfold">三年之间，市场规模扩张 <span class="accent-key">6.5</span> 倍</h2>
+        <div class="grid-data">
+            <div class="cell unfold">
+                <div class="cell-label latin">01 · Users</div>
+                <div class="cell-figure">7×</div>
+                <div class="cell-name">用户增长倍数</div>
+                <div class="cell-desc">VS Code 用 18 个月达百万月活，新一代产品只用 90 天。</div>
+            </div>
+            <div class="cell unfold">
+                <div class="cell-label latin">02 · Paid</div>
+                <div class="cell-figure">22%</div>
+                <div class="cell-name">付费转化率</div>
+                <div class="cell-desc">从传统 IDE 时代的 3% 跃升至 AI 编辑器的 22%。</div>
+            </div>
+            <div class="cell unfold">
+                <div class="cell-label latin">03 · ARPU</div>
+                <div class="cell-figure">4×</div>
+                <div class="cell-name">单用户年均价值</div>
+                <div class="cell-desc">ARPU 从年均 60 美元跳升至 240 美元。</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">DATA</span><span class="latin">03 / 05</span></div>
+</section>
+
+<!-- 4. 正文主体 竞品对照 -->
+<section class="frame" data-title="竞品深度剖面">
+    <div class="stage">
+        <div class="cue unfold latin">COMPETITIVE CROSS-SECTION <span class="accent-key">·</span> 护城河在哪里</div>
+        <h2 class="lede unfold">增长之王，与<span class="accent-key">原生 IDE</span>派</h2>
+        <div class="dialog">
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">Product A</span>Cursor</h3>
+                <ul class="dialog-list">
+                    <li>4200 万月活 · 28% 付费率</li>
+                    <li>VS Code fork，核心能力依赖底层模型</li>
+                    <li><b>护城河在融化</b>：产品体验是最易复制的维度</li>
+                </ul>
+            </div>
+            <div class="dialog-pane unfold">
+                <h3 class="dialog-head"><span class="latin">Product B</span>Windsurf</h3>
+                <ul class="dialog-list">
+                    <li>1800 万月活 · 24% 付费率 · L4 自主性</li>
+                    <li>从零写编辑器内核，1M token 上下文</li>
+                    <li><b>技术深度领先半年</b>，但缺生态壁垒</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COMPARE</span><span class="latin">04 / 05</span></div>
+</section>
+
+<!-- 5. 终章 -->
+<section class="frame coda" data-title="终章">
+    <div class="stage">
+        <div class="coda-pre unfold latin">END · MARKET BRIEF · 2026.05</div>
+        <h1 class="coda-headline unfold">这是一场<br>十年<span class="accent-key">战争</span></h1>
+        <p class="coda-post unfold">谁先理解「自主性等级」与「分发护城河」，谁就能在 2030 年的市场拿到决定性的位置。</p>
+        <div class="coda-sign unfold latin">A Longtext-To-Slides Demo · Vignelli</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin">05 / 05</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

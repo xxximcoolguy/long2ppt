@@ -1,0 +1,289 @@
+{
+  "version": "0.2.0",
+  "generated_at": "M2 占位 · 实际跑 generate_demos.py 后由脚本写入 timestamp",
+  "scenes": [
+    { "code": "business", "emoji": "🏢", "label": "工作汇报", "subtitle": "演示 · 公司内部 · 数据型" },
+    { "code": "reading",  "emoji": "📖", "label": "读书笔记", "subtitle": "文献综述 · 知识分享 · 文化向" },
+    { "code": "social",   "emoji": "📱", "label": "朋友圈分享", "subtitle": "社媒爆款 · 营销 · 视觉冲击" },
+    { "code": "speech",   "emoji": "🎤", "label": "演讲 Keynote", "subtitle": "TED · 个人故事 · 现场感染力" }
+  ],
+  "masters": [
+    {
+      "name": "rams",
+      "display_name": "克制专业",
+      "one_liner": "中性专业、不会丢人 — 适合需要可信感的汇报",
+      "scenes": ["business"],
+      "master_file": "aesthetics/rams.md",
+      "vibe_tags": ["克制", "中性", "极简", "工业"],
+      "color_hint": "暖白 + 单色低饱和",
+      "china_mutex": false,
+      "is_default_fallback": true,
+      "source_file": "demo-decks/source-A.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/rams/cover.png",
+        "chapter": "demo-decks/rams/chapter.png",
+        "body":    "demo-decks/rams/body.png"
+      }
+    },
+    {
+      "name": "crouwel",
+      "display_name": "极致网格",
+      "one_liner": "极致网格、数字电网风 — 工业理性气质",
+      "scenes": ["business"],
+      "master_file": "aesthetics/crouwel.md",
+      "vibe_tags": ["网格", "工业", "数字电网", "Stedelijk"],
+      "color_hint": "黑白 + 单色强调",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-A.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/crouwel/cover.png",
+        "chapter": "demo-decks/crouwel/chapter.png",
+        "body":    "demo-decks/crouwel/body.png"
+      }
+    },
+    {
+      "name": "vignelli",
+      "display_name": "黑白红出版物",
+      "one_liner": "黑白红配色 + 出版物网格 — 经典权威感",
+      "scenes": ["business"],
+      "master_file": "aesthetics/vignelli.md",
+      "vibe_tags": ["网格", "Helvetica", "出版物", "权威"],
+      "color_hint": "黑白 + 红",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-A.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/vignelli/cover.png",
+        "chapter": "demo-decks/vignelli/chapter.png",
+        "body":    "demo-decks/vignelli/body.png"
+      }
+    },
+    {
+      "name": "tufte",
+      "display_name": "数据墨水",
+      "one_liner": "数据墨水比 — 财报 / 学术 / 数据密集型专属",
+      "scenes": ["business"],
+      "master_file": "aesthetics/tufte.md",
+      "vibe_tags": ["数据", "墨水比", "Small Multiples", "学术"],
+      "color_hint": "灰为主 + 红蓝强调",
+      "china_mutex": false,
+      "is_data_override": true,
+      "source_file": "demo-decks/source-A.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/tufte/cover.png",
+        "chapter": "demo-decks/tufte/chapter.png",
+        "body":    "demo-decks/tufte/body.png"
+      }
+    },
+    {
+      "name": "tschichold",
+      "display_name": "新排版古典",
+      "one_liner": "新排版 + 古典 Sabon — 文学的优雅书卷气",
+      "scenes": ["reading", "business"],
+      "master_file": "aesthetics/tschichold.md",
+      "vibe_tags": ["新排版", "Sabon", "古典", "书卷"],
+      "color_hint": "暖白 + 深棕墨色",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-C.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/tschichold/cover.png",
+        "chapter": "demo-decks/tschichold/chapter.png",
+        "body":    "demo-decks/tschichold/body.png"
+      }
+    },
+    {
+      "name": "hara",
+      "display_name": "侘寂留白",
+      "one_liner": "侘寂留白、暖白宋体 — 读书的沉静感",
+      "scenes": ["reading", "speech"],
+      "master_file": "aesthetics/hara.md",
+      "vibe_tags": ["留白", "侘寂", "MUJI", "暖白"],
+      "color_hint": "纯净暖白 + 一笔淡墨",
+      "china_mutex": true,
+      "mutex_option": "A · 留白 · 暖白宋体 · 茶道感",
+      "source_file": "demo-decks/source-C.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/hara/cover.png",
+        "chapter": "demo-decks/hara/chapter.png",
+        "body":    "demo-decks/hara/body.png"
+      }
+    },
+    {
+      "name": "zhuyingchun",
+      "display_name": "禅意慢生长",
+      "one_liner": "慢设计、宋体大字夸张 — 自然观察的禅意",
+      "scenes": ["reading"],
+      "master_file": "aesthetics/zhuyingchun.md",
+      "vibe_tags": ["慢设计", "宋体", "禅意", "自然"],
+      "color_hint": "宣纸白 + 淡墨",
+      "china_mutex": true,
+      "mutex_option": "B · 禅意 · 慢生长 · 自然观察",
+      "source_file": "demo-decks/source-C.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/zhuyingchun/cover.png",
+        "chapter": "demo-decks/zhuyingchun/chapter.png",
+        "body":    "demo-decks/zhuyingchun/body.png"
+      }
+    },
+    {
+      "name": "eastern-book",
+      "display_name": "宣纸朱砂",
+      "one_liner": "朱砂方印 + 宣纸纹理 — 国学密度东方",
+      "scenes": ["reading"],
+      "master_file": "aesthetics/eastern-book.md",
+      "vibe_tags": ["宣纸", "朱砂", "碑刻", "密度"],
+      "color_hint": "宣纸黄 + 朱砂红 + 墨黑",
+      "china_mutex": true,
+      "mutex_option": "C · 国学 · 宣纸朱砂 · 信息密度",
+      "source_file": "demo-decks/source-C.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/eastern-book/cover.png",
+        "chapter": "demo-decks/eastern-book/chapter.png",
+        "body":    "demo-decks/eastern-book/body.png"
+      }
+    },
+    {
+      "name": "hanjiaying",
+      "display_name": "汉字海报",
+      "one_liner": "汉字独占画面 — 当代中国海报感",
+      "scenes": ["social", "speech"],
+      "master_file": "aesthetics/hanjiaying.md",
+      "vibe_tags": ["汉字", "海报", "朱砂", "大留白"],
+      "color_hint": "宣纸白 + 朱砂一枚",
+      "china_mutex": true,
+      "mutex_option": "D · 海报 · 汉字独占 · 现代张力",
+      "source_file": "demo-decks/source-C.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/hanjiaying/cover.png",
+        "chapter": "demo-decks/hanjiaying/chapter.png",
+        "body":    "demo-decks/hanjiaying/body.png"
+      }
+    },
+    {
+      "name": "scher",
+      "display_name": "字即图像",
+      "one_liner": "字即图像、强烈视觉冲击 — 让人一眼记住",
+      "scenes": ["social"],
+      "master_file": "aesthetics/scher.md",
+      "vibe_tags": ["字即图像", "黑潮", "营销", "大字"],
+      "color_hint": "黑底 + 高饱和强调色",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-B.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/scher/cover.png",
+        "chapter": "demo-decks/scher/chapter.png",
+        "body":    "demo-decks/scher/body.png"
+      }
+    },
+    {
+      "name": "bass",
+      "display_name": "几何海报",
+      "one_liner": "几何剪影 + 海报感 — 章节扉视觉重锤",
+      "scenes": ["speech", "social"],
+      "master_file": "aesthetics/bass.md",
+      "vibe_tags": ["几何", "剪影", "撕纸", "海报"],
+      "color_hint": "撞色块 + 限定 3 色",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-B.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/bass/cover.png",
+        "chapter": "demo-decks/bass/chapter.png",
+        "body":    "demo-decks/bass/body.png"
+      }
+    },
+    {
+      "name": "sagmeister",
+      "display_name": "手作大字",
+      "one_liner": "手写大字 + 物质媒介 — TED 演讲的情感感",
+      "scenes": ["speech"],
+      "master_file": "aesthetics/sagmeister.md",
+      "vibe_tags": ["手写", "物质", "情感", "TED"],
+      "color_hint": "暖色基调 + 手作纹理",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-B.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/sagmeister/cover.png",
+        "chapter": "demo-decks/sagmeister/chapter.png",
+        "body":    "demo-decks/sagmeister/body.png"
+      }
+    },
+    {
+      "name": "carson",
+      "display_name": "解构错位",
+      "one_liner": "越界错位、解构破碎 — 反规则的创意感",
+      "scenes": ["social", "speech"],
+      "master_file": "aesthetics/carson.md",
+      "vibe_tags": ["解构", "越界", "错位", "Ray Gun"],
+      "color_hint": "黑白 + 一抹高饱和",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-B.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/carson/cover.png",
+        "chapter": "demo-decks/carson/chapter.png",
+        "body":    "demo-decks/carson/body.png"
+      }
+    },
+    {
+      "name": "brody",
+      "display_name": "红黑构成",
+      "one_liner": "红黑构成 + 80s 实验 — 亚文化政治感",
+      "scenes": ["social"],
+      "master_file": "aesthetics/brody.md",
+      "vibe_tags": ["构成主义", "红黑", "实验", "The Face"],
+      "color_hint": "黑底 + 朱红 + 几何块面",
+      "china_mutex": false,
+      "source_file": "demo-decks/source-B.md",
+      "demo_ready": true,
+      "image_paths": {
+        "cover":   "demo-decks/brody/cover.png",
+        "chapter": "demo-decks/brody/chapter.png",
+        "body":    "demo-decks/brody/body.png"
+      }
+    }
+  ],
+  "scene_recommendations": {
+    "business": {
+      "primary": "rams",
+      "secondary": ["crouwel", "vignelli"],
+      "tertiary": ["tufte"],
+      "blocked": ["carson", "brody", "scher"]
+    },
+    "reading": {
+      "primary": "hara",
+      "secondary": ["tschichold", "zhuyingchun"],
+      "tertiary": ["eastern-book", "rams"],
+      "blocked": ["scher", "brody"]
+    },
+    "social": {
+      "primary": "scher",
+      "secondary": ["bass", "hanjiaying"],
+      "tertiary": ["carson", "brody"],
+      "blocked": ["tufte", "crouwel"]
+    },
+    "speech": {
+      "primary": "sagmeister",
+      "secondary": ["bass", "scher"],
+      "tertiary": ["hanjiaying", "hara"],
+      "blocked": ["tufte", "crouwel"]
+    }
+  },
+  "data_override": {
+    "trigger": "源文件含 > 30% 数据/表格/图表",
+    "force_master": "tufte",
+    "user_message": "你这份内容有大量数据，Data-Ink 风格最不浪费信息"
+  },
+  "china_mutex_group": ["hara", "zhuyingchun", "eastern-book", "hanjiaying"],
+  "fallback_master": "rams"
+}

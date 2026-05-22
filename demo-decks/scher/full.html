@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Stay Hungry Stay Foolish · Scher 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Archivo+Black&family=Oswald:wght@500;700&family=Noto+Sans+SC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 · Scher 覆盖版 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0A0A0A;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--scher-black);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    opacity: 0; visibility: hidden;
+    transform: translateX(40px);
+    transition:
+        opacity 0.45s cubic-bezier(0.4, 0.0, 0.2, 1),
+        transform 0.45s cubic-bezier(0.4, 0.0, 0.2, 1),
+        visibility 0s linear 0.45s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0);
+    transition:
+        opacity 0.5s cubic-bezier(0.4, 0.0, 0.2, 1) 0.04s,
+        transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-40px); }
+
+/* ============== Scher 配色 ============== */
+:root {
+    font-size: 14px;
+    --scher-black:   #0A0A0A;
+    --scher-yellow:  #FFD500;
+    --scher-red:     #E63946;
+    --scher-orange:  #FF6B00;
+    --scher-pink:    #FF1493;
+    --scher-blue:    #1D3557;
+    --scher-cream:   #FFF9E5;
+    --scher-white:   #FFFFFF;
+
+    --type-display: 'Bowlby One', 'Archivo Black', 'Noto Sans SC', sans-serif;
+    --type-condensed: 'Oswald', 'Archivo Black', sans-serif;
+    --type-body: 'Noto Sans SC', sans-serif;
+}
+
+.frame {
+    font-family: var(--type-display);
+    color: var(--scher-white);
+    letter-spacing: 0;
+    line-height: 0.88;
+}
+.han { font-family: 'Noto Sans SC', sans-serif; font-weight: 900; }
+.latin { font-family: var(--type-display); }
+.cond { font-family: var(--type-condensed); font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase; }
+
+/* ============== Runner（小字角标，纯功能）============== */
+.runner {
+    position: absolute;
+    font-family: var(--type-condensed); font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    z-index: 50;
+    opacity: 0.5;
+}
+.runner.r-tl { top: 22px; left: 28px; }
+.runner.r-tr { top: 22px; right: 28px; }
+.runner.r-bl { bottom: 22px; left: 28px; }
+.runner.r-br { bottom: 22px; right: 28px; }
+
+/* ============== Rail ============== */
+.rail {
+    position: fixed; right: 16px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 7px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 6px; height: 6px; border-radius: 0;
+    background: #555; opacity: 0.7;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.2s, background 0.2s, transform 0.2s;
+}
+.rail .rail-pip:hover { opacity: 1; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--scher-yellow); opacity: 1;
+    transform: scale(1.4);
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-condensed);
+    font-size: 10px;
+    color: #888; opacity: 0.5;
+    letter-spacing: 0.3em;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+/* ============== Layout: cover · 4 单词 4 色块铺满 ============== */
+.cover {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+}
+.cover-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    position: relative;
+}
+.cover-cell .word {
+    font-family: var(--type-display);
+    font-weight: 900;
+    font-size: 12rem;
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+}
+.cover-cell .word.cond {
+    font-family: var(--type-condensed);
+    font-weight: 700;
+    font-size: 13.5rem;
+    letter-spacing: -0.03em;
+}
+.c-stay-1 { background: var(--scher-yellow); color: var(--scher-black); }
+.c-hungry { background: var(--scher-black);  color: var(--scher-yellow); }
+.c-stay-2 { background: var(--scher-red);    color: var(--scher-cream); }
+.c-foolish{ background: var(--scher-cream);  color: var(--scher-black); }
+
+/* ============== Layout: opening · 三个故事 ============== */
+.opening {
+    display: grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    background: var(--scher-yellow);
+}
+.opening-left {
+    background: var(--scher-black);
+    color: var(--scher-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--type-display);
+    font-size: 38rem;
+    line-height: 0.78;
+    letter-spacing: -0.05em;
+}
+.opening-right {
+    color: var(--scher-black);
+    padding: 80px 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 28px;
+}
+.opening-tag {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.05rem; letter-spacing: 0.35em;
+    text-transform: uppercase;
+    border-top: 4px solid var(--scher-black);
+    padding-top: 16px;
+}
+.opening-lede {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 3.8rem;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+}
+.opening-en {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.7rem; letter-spacing: -0.005em;
+    text-transform: uppercase;
+}
+.opening-byline {
+    font-family: var(--type-condensed);
+    font-size: 0.95rem; letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #444;
+    margin-top: 28px;
+}
+
+/* ============== Layout: chapter · 章节扉撞色块 ============== */
+.chapter {
+    display: grid;
+    grid-template-columns: 0.62fr 1.38fr;
+}
+.chapter-side {
+    background: var(--scher-black);
+    color: var(--scher-yellow);
+    padding: 60px 42px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.chapter-roman {
+    font-family: var(--type-display);
+    font-size: 14rem;
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+}
+.chapter-tag {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.0rem; letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--scher-yellow);
+}
+.chapter-main {
+    background: var(--scher-yellow);
+    color: var(--scher-black);
+    padding: 60px 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+}
+.chapter-main--red    { background: var(--scher-red);    color: var(--scher-cream); }
+.chapter-main--cream  { background: var(--scher-cream);  color: var(--scher-black); }
+.chapter-main--pink   { background: var(--scher-pink);   color: var(--scher-cream); }
+.chapter-en {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.05rem; letter-spacing: 0.35em;
+    text-transform: uppercase;
+    border-top: 3px solid currentColor;
+    padding-top: 14px;
+}
+.chapter-title-en {
+    font-family: var(--type-display);
+    font-size: 5.8rem;
+    line-height: 0.86;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+}
+.chapter-title-cn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 2.6rem;
+    line-height: 1.0;
+    letter-spacing: -0.005em;
+}
+.chapter-lead {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    margin-top: 14px;
+    max-width: 30ch;
+}
+
+/* ============== Layout: number-grid · 4 巨数字 ============== */
+.number-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+}
+.num-cell {
+    position: relative;
+    padding: 40px 42px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+.num-cell .big-num {
+    font-family: var(--type-display);
+    font-size: 13rem;
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    align-self: flex-end;
+}
+.num-cell .num-cond {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 13.5rem; letter-spacing: -0.04em;
+    line-height: 0.82;
+    align-self: flex-end;
+    text-transform: uppercase;
+}
+.num-cell .num-label {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.05rem; letter-spacing: 0.32em;
+    text-transform: uppercase;
+}
+.num-cell .num-note {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0;
+    line-height: 1.4;
+    max-width: 16ch;
+}
+.n-a { background: var(--scher-yellow); color: var(--scher-black); }
+.n-b { background: var(--scher-black);  color: var(--scher-yellow); }
+.n-c { background: var(--scher-red);    color: var(--scher-cream); }
+.n-d { background: var(--scher-cream);  color: var(--scher-black); }
+
+/* ============== Layout: quote-full · 全屏 wood-type quote ============== */
+.quote-full {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 70px 80px;
+    background: var(--scher-black);
+    color: var(--scher-yellow);
+    gap: 28px;
+}
+.quote-full--cream { background: var(--scher-cream); color: var(--scher-black); }
+.quote-full--red   { background: var(--scher-red);   color: var(--scher-cream); }
+.quote-full--pink  { background: var(--scher-pink);  color: var(--scher-cream); }
+.quote-tag {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.0rem; letter-spacing: 0.35em;
+    text-transform: uppercase;
+    align-self: flex-start;
+    padding: 6px 14px;
+    border: 2px solid currentColor;
+}
+.quote-en {
+    font-family: var(--type-display);
+    font-size: 5.4rem;
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    max-width: 18ch;
+}
+.quote-cn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 1.7rem;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    max-width: 32ch;
+}
+
+/* ============== Layout: word-strike · 单字撞色 ============== */
+.word-strike {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+}
+.ws-mega {
+    background: var(--scher-yellow);
+    color: var(--scher-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+.ws-mega .glyph {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 34rem;
+    line-height: 0.78;
+    letter-spacing: -0.06em;
+}
+.ws-mega--red    { background: var(--scher-red);    color: var(--scher-cream); }
+.ws-mega--orange { background: var(--scher-orange); color: var(--scher-black); }
+.ws-mega--pink   { background: var(--scher-pink);   color: var(--scher-cream); }
+.ws-mega--cream  { background: var(--scher-cream);  color: var(--scher-black); }
+.ws-side {
+    background: var(--scher-black);
+    color: var(--scher-yellow);
+    padding: 70px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 28px;
+}
+.ws-side-tag {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 0.98rem; letter-spacing: 0.35em;
+    text-transform: uppercase;
+    border-top: 3px solid currentColor;
+    padding-top: 14px;
+    align-self: flex-start;
+}
+.ws-side-en {
+    font-family: var(--type-display);
+    font-size: 2.0rem;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--scher-cream);
+}
+.ws-side-cn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
+    line-height: 1.35;
+    color: var(--scher-yellow);
+    letter-spacing: 0;
+}
+
+/* ============== Layout: don't-triplet · 三联色块 ============== */
+.triplet {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+}
+.trip-cell {
+    padding: 50px 38px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 28px;
+    position: relative;
+    overflow: hidden;
+}
+.trip-cell .trip-mark {
+    font-family: var(--type-display);
+    font-size: 8.2rem;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+.trip-cell .trip-num {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 0.92rem; letter-spacing: 0.4em;
+    text-transform: uppercase;
+}
+.trip-cell .trip-en {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.55rem; letter-spacing: -0.005em;
+    text-transform: uppercase;
+    line-height: 1.05;
+}
+.trip-cell .trip-cn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 1.45rem;
+    line-height: 1.35;
+    letter-spacing: 0;
+}
+.t-a { background: var(--scher-red);    color: var(--scher-cream); }
+.t-b { background: var(--scher-yellow); color: var(--scher-black); }
+.t-c { background: var(--scher-black);  color: var(--scher-cream); }
+
+/* ============== Layout: end · STAY HUNGRY STAY FOOLISH 终章 ============== */
+.end-strike {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+.end-half {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 50px;
+    font-family: var(--type-display);
+    font-weight: 900;
+    font-size: 8.5rem;
+    line-height: 0.85;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+    text-align: center;
+}
+.end-a { background: var(--scher-yellow); color: var(--scher-black); }
+.end-b { background: var(--scher-black);  color: var(--scher-yellow); }
+
+/* ============== Layout: thank-you · 终页 ============== */
+.thank-you {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--scher-cream);
+    color: var(--scher-black);
+    padding: 60px;
+    position: relative;
+}
+.thank-you .ty-mega {
+    font-family: var(--type-display);
+    font-size: 16rem;
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    text-align: center;
+}
+.thank-you .ty-mark {
+    position: absolute;
+    bottom: 60px; right: 70px;
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+}
+
+/* ============== Mirror-question · 镜子诘问 ============== */
+.mirror {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--scher-black);
+    color: var(--scher-cream);
+    padding: 80px 90px;
+    gap: 40px;
+}
+.mirror-tag {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.0rem; letter-spacing: 0.4em;
+    text-transform: uppercase;
+    align-self: flex-start;
+    color: var(--scher-yellow);
+    border-bottom: 3px solid var(--scher-yellow);
+    padding-bottom: 12px;
+}
+.mirror-q {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 900;
+    font-size: 3.5rem;
+    line-height: 1.05;
+    letter-spacing: -0.005em;
+    color: var(--scher-cream);
+}
+.mirror-q .accent {
+    color: var(--scher-yellow);
+}
+.mirror-meta {
+    font-family: var(--type-condensed); font-weight: 700;
+    font-size: 1.0rem; letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--scher-yellow);
+    opacity: 0.85;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="Stay Hungry Stay Foolish">
+
+<!-- 1. 封面：4 单词 4 色块铺满 -->
+<section class="frame cover" data-title="封面" data-state="active">
+    <div class="cover-cell c-stay-1"><span class="word">STAY</span></div>
+    <div class="cover-cell c-hungry"><span class="word cond">HUNGRY</span></div>
+    <div class="cover-cell c-stay-2"><span class="word">STAY</span></div>
+    <div class="cover-cell c-foolish"><span class="word cond">FOOLISH</span></div>
+    <span class="runner r-tl" style="color: #0A0A0A; opacity: 0.7;">DECK 01 / 18</span>
+    <span class="runner r-br" style="color: #FFD500; opacity: 0.85;">COVER</span>
+</section>
+
+<!-- 2. 开场：三个故事 -->
+<section class="frame opening" data-title="开场">
+    <div class="opening-left">3</div>
+    <div class="opening-right">
+        <div class="opening-tag">STANFORD · JUNE 12 · 2005</div>
+        <h2 class="opening-lede">三个故事 <span style="color: var(--scher-red);">No Big Deal</span></h2>
+        <div class="opening-en">THREE STORIES FROM MY LIFE.<br>THAT'S IT.</div>
+        <div class="opening-byline">STEVE JOBS · COMMENCEMENT ADDRESS</div>
+    </div>
+    <span class="runner r-br" style="color: #0A0A0A; opacity: 0.7;">02 / 18 · OPENING</span>
+</section>
+
+<!-- 3. PART 01 章节扉 -->
+<section class="frame chapter" data-title="PART 01 连点">
+    <div class="chapter-side">
+        <div class="chapter-tag">STORY · 01</div>
+        <div class="chapter-roman">01</div>
+        <div class="chapter-tag">CONNECTING<br>THE DOTS</div>
+    </div>
+    <div class="chapter-main">
+        <div class="chapter-en">FIRST STORY</div>
+        <h1 class="chapter-title-en">Connecting<br>The Dots</h1>
+        <h2 class="chapter-title-cn">把点滴 / 串起来</h2>
+        <p class="chapter-lead">退学 6 个月。旁听 18 个月。<br>5 美分可乐瓶换饭，7 英里走路换一顿好饭。</p>
+    </div>
+    <span class="runner r-tl" style="color: #FFD500; opacity: 0.85;">03 / 18</span>
+    <span class="runner r-br" style="color: #0A0A0A; opacity: 0.7;">CHAPTER 01</span>
+</section>
+
+<!-- 4. 数字网格 17/18/5¢/7 -->
+<section class="frame number-grid" data-title="数字 · 4 个">
+    <div class="num-cell n-a">
+        <div class="num-label">YEARS OLD</div>
+        <div class="big-num">17</div>
+        <div class="num-note">17 岁那年读到一句话<br>"如把每天当末日来过"</div>
+    </div>
+    <div class="num-cell n-b">
+        <div class="num-label">MONTHS</div>
+        <div class="big-num">18</div>
+        <div class="num-note">退学后旁听 18 个月<br>才真正离开里德学院</div>
+    </div>
+    <div class="num-cell n-c">
+        <div class="num-label">CENTS / BOTTLE</div>
+        <div class="num-cond">5¢</div>
+        <div class="num-note">捡可乐瓶换 5¢<br>买饭吃</div>
+    </div>
+    <div class="num-cell n-d">
+        <div class="num-label">MILES · WEEKLY WALK</div>
+        <div class="big-num">7</div>
+        <div class="num-note">每个周日 7 英里<br>走到 Hare Krishna 神庙吃一顿好饭</div>
+    </div>
+    <span class="runner r-tl" style="color: #0A0A0A; opacity: 0.7;">04 / 18 · NUMBERS</span>
+</section>
+
+<!-- 5. quote 全屏 You can't connect -->
+<section class="frame quote-full quote-full--cream" data-title="quote: connecting dots">
+    <div class="quote-tag">QUOTE · 01</div>
+    <h2 class="quote-en">You can't connect<br>the dots<br>looking forward.</h2>
+    <p class="quote-cn">你不能预先把点点滴滴连接起来；<br>只有在回头看时，才能发现它们之间的联系。<br>所以你必须相信，那些点点滴滴会在你未来的某一天串起来。</p>
+    <span class="runner r-br" style="color: #0A0A0A; opacity: 0.6;">05 / 18 · QUOTE</span>
+</section>
+
+<!-- 6. 单字「信 TRUST」 -->
+<section class="frame word-strike" data-title="字: 信">
+    <div class="ws-mega ws-mega--red">
+        <span class="glyph">信</span>
+    </div>
+    <div class="ws-side">
+        <div class="ws-side-tag">STORY 01 · CORE</div>
+        <div class="ws-side-en">Trust that<br>the dots will<br>somehow<br>connect.</div>
+        <div class="ws-side-cn">相信那些点滴<br>会在未来某一天<br>串起来。</div>
+    </div>
+    <span class="runner r-tl" style="color: #FFF9E5; opacity: 0.7;">06 / 18 · ONE WORD</span>
+</section>
+
+<!-- 7. PART 02 章节扉 -->
+<section class="frame chapter" data-title="PART 02 爱与失">
+    <div class="chapter-side">
+        <div class="chapter-tag">STORY · 02</div>
+        <div class="chapter-roman">02</div>
+        <div class="chapter-tag">LOVE<br>&<br>LOSS</div>
+    </div>
+    <div class="chapter-main chapter-main--red">
+        <div class="chapter-en">SECOND STORY</div>
+        <h1 class="chapter-title-en">Love<br>& Loss.</h1>
+        <h2 class="chapter-title-cn">爱与失 / 失而新生</h2>
+        <p class="chapter-lead">车库 20 岁创业。10 年 20 亿。<br>30 岁被自己的公司开除。</p>
+    </div>
+    <span class="runner r-tl" style="color: #FFD500; opacity: 0.85;">07 / 18</span>
+    <span class="runner r-br" style="color: #FFF9E5; opacity: 0.7;">CHAPTER 02</span>
+</section>
+
+<!-- 8. 数字网格 20/10/$2B/4000 -->
+<section class="frame number-grid" data-title="数字 · 创业里程碑">
+    <div class="num-cell n-c">
+        <div class="num-label">YEARS OLD</div>
+        <div class="big-num">20</div>
+        <div class="num-note">20 岁那年沃兹和我<br>在我父母车库创办苹果</div>
+    </div>
+    <div class="num-cell n-d">
+        <div class="num-label">YEARS LATER</div>
+        <div class="big-num">10</div>
+        <div class="num-note">十年里从车库 2 个人<br>长成 4000 人公司</div>
+    </div>
+    <div class="num-cell n-a">
+        <div class="num-label">MARKET CAP · USD</div>
+        <div class="num-cond">$2B</div>
+        <div class="num-note">20 亿美元市值<br>4000 多员工</div>
+    </div>
+    <div class="num-cell n-b">
+        <div class="num-label">FIRED</div>
+        <div class="big-num">30</div>
+        <div class="num-note">30 岁被自己创办的<br>公司开除</div>
+    </div>
+    <span class="runner r-tl" style="color: #0A0A0A; opacity: 0.7;">08 / 18 · NUMBERS</span>
+</section>
+
+<!-- 9. 巨字 FIRED -->
+<section class="frame quote-full quote-full--red" data-title="FIRED">
+    <div class="quote-tag">CHAPTER 02 · SHOCK</div>
+    <h2 class="quote-en" style="font-size: 11rem; letter-spacing: -0.05em; line-height: 0.85;">FIRED.</h2>
+    <p class="quote-cn">一个人怎么会被自己创办的公司开除？<br>—— 我是一个非常公开的失败者。<br>有几个月，我真的不知道该做什么。</p>
+    <span class="runner r-br" style="color: #FFF9E5; opacity: 0.6;">09 / 18 · ONE WORD</span>
+</section>
+
+<!-- 10. quote The lightness of being a beginner -->
+<section class="frame quote-full quote-full--pink" data-title="quote: beginner">
+    <div class="quote-tag">QUOTE · 02</div>
+    <h2 class="quote-en">The heaviness<br>of being successful<br>was replaced by<br>the lightness<br>of being a beginner.</h2>
+    <p class="quote-cn">成功的沉重，被重新做新手的轻盈取代。<br>它让我进入了人生中最有创造力的时期之一。</p>
+    <span class="runner r-br" style="color: #FFF9E5; opacity: 0.6;">10 / 18 · QUOTE</span>
+</section>
+
+<!-- 11. 单字「爱 LOVE」 -->
+<section class="frame word-strike" data-title="字: 爱">
+    <div class="ws-mega ws-mega--orange">
+        <span class="glyph">爱</span>
+    </div>
+    <div class="ws-side">
+        <div class="ws-side-tag">STORY 02 · CORE</div>
+        <div class="ws-side-en">The only way<br>to do great work<br>is to love<br>what you do.</div>
+        <div class="ws-side-cn">做出伟大事情的<br>唯一方法，<br>是热爱你所做的事。</div>
+    </div>
+    <span class="runner r-tl" style="color: #0A0A0A; opacity: 0.7;">11 / 18 · ONE WORD</span>
+</section>
+
+<!-- 12. PART 03 章节扉 -->
+<section class="frame chapter" data-title="PART 03 死亡">
+    <div class="chapter-side">
+        <div class="chapter-tag">STORY · 03</div>
+        <div class="chapter-roman">03</div>
+        <div class="chapter-tag">DEATH</div>
+    </div>
+    <div class="chapter-main chapter-main--cream">
+        <div class="chapter-en">THIRD STORY</div>
+        <h1 class="chapter-title-en">Death.</h1>
+        <h2 class="chapter-title-cn">死亡 / 时间的提醒</h2>
+        <p class="chapter-lead">17 岁那句话。每天问镜子。<br>胰腺癌诊断。"Prepare to die."</p>
+    </div>
+    <span class="runner r-tl" style="color: #FFD500; opacity: 0.85;">12 / 18</span>
+    <span class="runner r-br" style="color: #0A0A0A; opacity: 0.7;">CHAPTER 03</span>
+</section>
+
+<!-- 13. 镜子诘问 -->
+<section class="frame mirror" data-title="镜子诘问">
+    <div class="mirror-tag">EVERY MORNING FOR 33 YEARS</div>
+    <h2 class="mirror-q">如果今天是<br>你<span class="accent">生命的最后一天</span>，<br>你会想做今天<br>准备做的事吗？</h2>
+    <div class="mirror-meta">"NO" FOR TOO MANY DAYS · TIME TO CHANGE.</div>
+    <span class="runner r-br" style="color: #FFD500; opacity: 0.7;">13 / 18 · MIRROR Q</span>
+</section>
+
+<!-- 14. quote Your time is limited -->
+<section class="frame quote-full" data-title="quote: time limited">
+    <div class="quote-tag" style="color: var(--scher-yellow); border-color: var(--scher-yellow);">QUOTE · 03</div>
+    <h2 class="quote-en" style="color: var(--scher-yellow);">Your time<br>is limited.</h2>
+    <p class="quote-cn" style="color: var(--scher-cream);">你的时间有限，所以不要为别人而活。<br>不要被教条束缚。<br>不要让他人的喧嚣淹没你内心的声音。</p>
+    <span class="runner r-br" style="color: #FFD500; opacity: 0.6;">14 / 18 · QUOTE</span>
+</section>
+
+<!-- 15. DON'T 三联 -->
+<section class="frame triplet" data-title="DON'T 三联">
+    <div class="trip-cell t-a">
+        <div class="trip-num">RULE · 01</div>
+        <div class="trip-mark">DON'T<br>WASTE.</div>
+        <div class="trip-en">DON'T WASTE IT<br>LIVING SOMEONE<br>ELSE'S LIFE.</div>
+        <div class="trip-cn">不要为别人而活。</div>
+    </div>
+    <div class="trip-cell t-b">
+        <div class="trip-num">RULE · 02</div>
+        <div class="trip-mark">DON'T<br>TRAP.</div>
+        <div class="trip-en">DON'T BE TRAPPED<br>BY DOGMA.</div>
+        <div class="trip-cn">不要被教条束缚。</div>
+    </div>
+    <div class="trip-cell t-c">
+        <div class="trip-num">RULE · 03</div>
+        <div class="trip-mark">DON'T<br>LET.</div>
+        <div class="trip-en">DON'T LET OTHERS'<br>OPINIONS DROWN<br>OUT YOUR VOICE.</div>
+        <div class="trip-cn">不要让喧嚣<br>淹没内心的声音。</div>
+    </div>
+    <span class="runner r-br" style="color: #FFF9E5; opacity: 0.6;">15 / 18 · DON'T</span>
+</section>
+
+<!-- 16. PART 04 告别章节扉 -->
+<section class="frame chapter" data-title="PART 04 告别">
+    <div class="chapter-side">
+        <div class="chapter-tag">CLOSING</div>
+        <div class="chapter-roman">04</div>
+        <div class="chapter-tag">FAREWELL</div>
+    </div>
+    <div class="chapter-main chapter-main--pink">
+        <div class="chapter-en">FINAL CHAPTER</div>
+        <h1 class="chapter-title-en">Whole Earth<br>Catalog.</h1>
+        <h2 class="chapter-title-cn">《全球目录》封底</h2>
+        <p class="chapter-lead">Stewart Brand 创办的杂志。<br>最后一期封底一张清晨乡村公路。<br>下面写着：</p>
+    </div>
+    <span class="runner r-tl" style="color: #FFD500; opacity: 0.85;">16 / 18</span>
+    <span class="runner r-br" style="color: #FFF9E5; opacity: 0.7;">CHAPTER 04</span>
+</section>
+
+<!-- 17. 终章 STAY HUNGRY · STAY FOOLISH -->
+<section class="frame end-strike" data-title="终章口号">
+    <div class="end-half end-a">STAY<br>HUNGRY.</div>
+    <div class="end-half end-b">STAY<br>FOOLISH.</div>
+    <span class="runner r-tl" style="color: #0A0A0A; opacity: 0.7;">17 / 18</span>
+    <span class="runner r-br" style="color: #FFD500; opacity: 0.85;">CODA · 求知若饥 虚心若愚</span>
+</section>
+
+<!-- 18. THANK YOU -->
+<section class="frame thank-you" data-title="终页">
+    <div class="ty-mega">THANK<br>YOU.</div>
+    <div class="ty-mark">A LONGTEXT-TO-SLIDES DEMO · SCHER · 18 / 18</div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  space  ·  click  ·  f</div>
+
+<script>
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                document.body.classList.add('deck-mode--stack');
+                deck.classList.add('deck-mode--stack');
+                stackMode = true;
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 380);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

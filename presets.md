@@ -19,6 +19,46 @@
 
 ---
 
+## 预设索引（场景 + 大师映射 · Phase 3 进阶模式查阅）
+
+> 本表把 15 套预设映射到「适配场景」和「对应大师文件」，供 Phase 3 Q1 进阶模式和未来 M2 预览页使用。
+> 字段说明：
+> - **scenes**：建议适配的场景（一套预设可能适配多个场景）
+> - **master**：底层加载的 `aesthetics/<name>.md`，决定视觉哲学层
+> - 场景代码：🏢=工作汇报 / 📖=读书笔记 / 📱=朋友圈分享 / 🎤=演讲 Keynote
+
+| # | 预设名 | scenes | master |
+|---|--------|--------|--------|
+| 01 | 金箔残夜 (Gilded Dusk) | 🎤 📖 | tschichold |
+| 02 | 电流 (Voltline) | 🏢（科技/AI 类）| rams |
+| 03 | 夜潮 (Tidal Night) | 📖 🏢 | tschichold |
+| 04 | 霓虹脉冲 (Pulse Neon) | 📱 | brody |
+| 05 | 磷火显像 (Phosphor Tube) | 🏢（极客/开发者）| rams |
+| 06 | 宣纸古卷 (Rice Scroll) | 📖 🎤 | eastern-book |
+| 07 | 水墨留白 (Ink Wash) | 📖 🎤 | hara |
+| 08 | 故宫赤红 (Crimson Court) | 📱 🎤 | hanjiaying |
+| 09 | 青瓷釉色 (Celadon Glaze) | 📖 | zhuyingchun |
+| 10 | 碑刻金石 (Stele Cut) | 📖 | eastern-book |
+| 11 | 档案本 (Archive Folio) | 🏢 📖 | tschichold |
+| 12 | 单刊 (Monomag) | 🎤 📱 | brody |
+| 13 | 读本 (Reader's Edition) | 📖 | tschichold |
+| 14a | 解构 (Anti-grid / Ray Gun) | 📱 🎤 | carson |
+| 14b | 网格主义 (Gridism) | 🏢 | vignelli |
+| 15 | 黑潮 (Onyx Wave) | 📱 | scher |
+
+### 已知缺口（M2/M3 待补预设）
+
+当前 15 套未覆盖以下 5 个大师，M2 阶段补齐：
+- **sagmeister**：手工感 / TED 演讲叙事 — 缺一套「手作笔记本」预设
+- **bass**：海报感 / 几何剪影 — 缺一套「几何切片」预设
+- **crouwel**：极致网格 / 数字电网 — 缺一套「Stedelijk 工业」预设
+- **tufte**：数据墨水比 / 学术 — 缺一套「数据报告」预设（M2 重要！数据场景必需）
+
+### 已知 Bug
+- 第 14 号预设编号重复（解构 & 网格主义同为 14）。M2 阶段重新编号为 14、15、并把现有 15 改为 16。**M1 阶段先在内部用 14a/14b 区分，不改 ID。**
+
+---
+
 ## 一、夜色系（4 套）
 
 ### 01 · 金箔残夜 (Gilded Dusk)

@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>求知若饥 · 三个故事 · Brody 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Syne:wght@600;700;800&family=Noto+Sans+SC:wght@500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #000000);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #000000);
+    color: var(--stage-ink, #FFFFFF);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 88px);
+    opacity: 0; visibility: hidden;
+    /* Brody: 暴力切入，硬朗位移，不柔滑 */
+    transform: translateX(80px);
+    transition:
+        opacity 0.32s cubic-bezier(0.85, 0, 0.15, 1),
+        transform 0.32s cubic-bezier(0.85, 0, 0.15, 1),
+        visibility 0s linear 0.32s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0);
+    transition:
+        opacity 0.4s cubic-bezier(0.85, 0, 0.15, 1) 0.04s,
+        transform 0.4s cubic-bezier(0.85, 0, 0.15, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-80px); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: var(--stage-gap, 26px);
+    max-width: 100%; max-height: 100%;
+    overflow: visible; position: relative; z-index: 2;
+}
+
+/* ============== Brody 配色与字号系统 ============== */
+:root {
+    font-size: 14px;
+    --stage-void: #000000;
+    --stage-bg: #000000;        /* 主黑 60-70% */
+    --stage-ink: #FFFFFF;       /* 纸白 */
+    --stage-faint: #6E6E6E;     /* 暗灰 — 仅用于次要标记 */
+    --brody-red: #E30613;       /* Rodchenko 朱红 */
+    --brody-red-deep: #B5040F;
+    --brody-paper: #F2F0E9;     /* 微暖白块面用 */
+
+    --type-display-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --type-body-cn: 'Noto Sans SC', 'PingFang SC', sans-serif;
+    --type-latin-display: 'Anton', 'Archivo Black', sans-serif;
+    --type-latin-alt: 'Syne', 'Archivo Black', sans-serif;
+    --type-mono: 'Space Mono', monospace;
+
+    --type-mega: 9.5rem;
+    --type-display: 6.6rem;
+    --type-h1: 4.2rem;
+    --type-h2: 2.6rem;
+    --type-h3: 1.5rem;
+    --type-body: 1.04rem;
+    --type-small: 0.82rem;
+    --type-tag: 0.74rem;
+
+    --leading-crush: 0.92;   /* Brody: 标题行距压到 < 1 */
+    --leading-tight: 1.04;
+    --leading-snug: 1.32;
+    --leading-cozy: 1.62;
+
+    /* Brody 招牌超长字距 0.15-0.3em */
+    --track-mega: 0.04em;
+    --track-wide: 0.26em;
+    --track-extreme: 0.42em;
+    --track-han: 0.04em;
+
+    --frame-pad: 88px;
+    --stage-gap: 26px;
+}
+
+.frame { letter-spacing: var(--track-han); }
+.frame :lang(en), .frame .latin, .frame .num {
+    font-family: var(--type-latin-alt, inherit);
+}
+
+/* ============== Runner & Cue ============== */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--type-mono); font-size: var(--type-tag);
+    color: var(--stage-faint);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    z-index: 5;
+}
+.runner--bottom { bottom: 30px; }
+.runner .runner-mark {
+    display: inline-flex; align-items: center; gap: 0.7em;
+    color: var(--brody-red); font-weight: 700;
+}
+.runner .runner-mark::before {
+    content: ''; width: 14px; height: 14px;
+    background: var(--brody-red);
+    /* Brody: 实心几何块，非圆点 */
+}
+.cue {
+    display: inline-flex; align-items: center; gap: 0;
+    font-family: var(--type-mono); font-weight: 700;
+    background: var(--brody-red);
+    color: #000;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    padding: 0.5em 1.1em 0.5em 1.1em;
+    align-self: flex-start;
+}
+.lede {
+    font-family: var(--type-display-cn);
+    font-weight: 900; font-size: var(--type-h2);
+    line-height: var(--leading-tight);
+    color: var(--stage-ink);
+    letter-spacing: 0.02em;
+    max-width: 24ch;
+}
+.lede .accent-key { color: var(--brody-red); }
+.deck-meta {
+    font-family: var(--type-body-cn);
+    font-size: var(--type-body);
+    line-height: var(--leading-cozy);
+    color: #B8B8B8;
+    max-width: 56ch;
+    font-weight: 500;
+}
+
+/* ============== Unfold animation — Brody: 硬切入 ============== */
+.unfold {
+    opacity: 0; transform: translateY(22px);
+    transition:
+        opacity 0.34s cubic-bezier(0.85, 0, 0.15, 1),
+        transform 0.34s cubic-bezier(0.85, 0, 0.15, 1);
+}
+.frame[data-state="active"] .unfold { opacity: 1; transform: translateY(0); }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.06s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.13s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.20s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.27s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.34s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.41s; }
+.frame[data-state="active"] .unfold:nth-child(7) { transition-delay: 0.48s; }
+.frame[data-state="active"] .unfold:nth-child(8) { transition-delay: 0.55s; }
+
+/* ============== 巨型几何符号锚点 ============== */
+.glyph {
+    position: absolute;
+    font-family: var(--type-latin-display);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+    user-select: none;
+}
+
+/* ============== Rail ============== */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 9px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 12px; height: 12px; border-radius: 0;  /* Brody: 实心方块 */
+    background: #FFFFFF; opacity: 0.22;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.18s, background 0.18s, transform 0.18s;
+}
+.rail .rail-pip:hover { opacity: 0.55; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--brody-red); opacity: 1;
+    transform: scale(1.35) rotate(45deg);  /* Brody: 激活态旋成菱形 */
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-mono);
+    font-size: 10px;
+    color: var(--stage-faint); opacity: 0.5;
+    letter-spacing: 0.34em;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+.accent-key { color: var(--brody-red); }
+.num { font-family: var(--type-mono); font-variant-numeric: tabular-nums; }
+
+/* ============== Layout: front-frame 封面 ============== */
+.front-frame { padding: 0; }
+.front-frame .stage {
+    justify-content: stretch; gap: 0;
+    flex-direction: row;
+}
+/* 左侧黑场 + 巨型红字 */
+.cover-main {
+    flex: 1 1 64%;
+    position: relative;
+    padding: 78px 56px 64px 88px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+.cover-top {
+    display: flex; gap: 1.6em; align-items: baseline;
+    font-family: var(--type-mono); font-size: var(--type-small);
+    color: var(--stage-faint); letter-spacing: var(--track-wide);
+    text-transform: uppercase; font-weight: 700;
+    z-index: 3;
+}
+.cover-top .hot { color: var(--brody-red); }
+.cover-core { z-index: 3; }
+.cover-kicker {
+    font-family: var(--type-latin-display);
+    font-size: 1.3rem;
+    letter-spacing: var(--track-extreme);
+    text-transform: uppercase;
+    color: var(--stage-ink);
+    margin-bottom: 0.5em;
+}
+.cover-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-mega); line-height: var(--leading-crush);
+    color: var(--stage-ink);
+    letter-spacing: 0.02em;
+}
+.cover-title .accent-key { color: var(--brody-red); }
+.cover-sub {
+    font-family: var(--type-body-cn); font-weight: 700;
+    font-size: var(--type-h3); color: #C4C4C4;
+    max-width: 30ch;
+    line-height: var(--leading-snug);
+    margin-top: 0.9em;
+    letter-spacing: 0.08em;
+}
+.cover-bottom {
+    font-family: var(--type-mono); font-size: var(--type-small);
+    color: var(--stage-faint); letter-spacing: var(--track-wide);
+    text-transform: uppercase; font-weight: 700;
+    z-index: 3;
+}
+/* 封面巨型几何符号 — 圆叠箭头，破出血 */
+.cover-main .glyph-circle {
+    position: absolute;
+    right: -150px; top: -110px;
+    width: 440px; height: 440px;
+    border: 46px solid var(--brody-red);
+    border-radius: 50%;
+    z-index: 2;
+}
+.cover-main .glyph-bar {
+    position: absolute;
+    left: -40px; bottom: 96px;
+    width: 320px; height: 26px;
+    background: var(--brody-red);
+    z-index: 1;
+}
+/* 右侧红色竖条 — Rodchenko 红黑分割 */
+.cover-side {
+    flex: 0 0 36%;
+    background: var(--brody-red);
+    color: #000;
+    position: relative;
+    padding: 78px 48px 64px 48px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+.cover-side-vert {
+    font-family: var(--type-latin-display);
+    font-size: 4.6rem;
+    line-height: 0.96;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: #000;
+}
+.cover-side-mark {
+    font-family: var(--type-display-cn);
+    font-weight: 900;
+    font-size: 2.2rem;
+    letter-spacing: 0.16em;
+    color: #000;
+    line-height: 1.1;
+}
+.cover-side .glyph-tri {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 0; height: 0;
+    border-left: 120px solid transparent;
+    border-right: 120px solid transparent;
+    border-bottom: 200px solid #000;
+    opacity: 0.92;
+}
+.cover-side-num {
+    font-family: var(--type-mono);
+    font-weight: 700;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: #000;
+    z-index: 3;
+}
+
+/* ============== Layout: chapter-plate 章节扉 ============== */
+.chapter-plate .stage { justify-content: center; align-items: flex-start; }
+.chapter-plate .glyph-part {
+    position: absolute;
+    right: -4%; top: -22%;
+    font-size: 30rem;
+    font-family: var(--type-latin-display);
+    color: var(--brody-red);
+    z-index: 1;
+    letter-spacing: -0.04em;
+}
+.chapter-num {
+    display: inline-flex; align-items: center; gap: 0;
+    font-family: var(--type-mono); font-weight: 700;
+    background: #FFFFFF; color: #000;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    padding: 0.5em 1em;
+    z-index: 3;
+}
+.chapter-title {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-crush);
+    color: var(--stage-ink);
+    margin-top: 0.28em;
+    letter-spacing: 0.03em;
+    z-index: 3;
+    max-width: 12ch;
+}
+.chapter-title .accent-key { color: var(--brody-red); }
+.chapter-en {
+    font-family: var(--type-latin-display);
+    color: var(--brody-red);
+    font-size: 1.6rem; margin-top: 0.7em;
+    letter-spacing: var(--track-extreme);
+    text-transform: uppercase;
+    z-index: 3;
+}
+.chapter-lead {
+    font-family: var(--type-body-cn);
+    font-size: var(--type-body); color: #C4C4C4;
+    margin-top: 1.6em; max-width: 46ch;
+    line-height: var(--leading-cozy);
+    font-weight: 600;
+    padding-left: 22px;
+    border-left: 8px solid var(--brody-red);
+    z-index: 3;
+}
+
+/* ============== Layout: 正文主体 — 故事网格 ============== */
+.story .stage { justify-content: center; }
+.story .glyph-mark {
+    position: absolute;
+    left: -3%; bottom: -34%;
+    font-size: 26rem;
+    color: var(--brody-red);
+    z-index: -1;
+}
+.story-head {
+    display: flex; align-items: flex-end; gap: 0;
+    margin-top: 18px;
+}
+.story-index {
+    font-family: var(--type-latin-display);
+    font-size: 11rem;
+    line-height: 0.78;
+    color: var(--brody-red);
+    letter-spacing: -0.04em;
+    flex: 0 0 auto;
+    margin-right: 38px;
+}
+.story-headline {
+    font-family: var(--type-display-cn);
+    font-weight: 900;
+    font-size: 3.4rem;
+    line-height: var(--leading-tight);
+    color: var(--stage-ink);
+    letter-spacing: 0.03em;
+    padding-bottom: 0.18em;
+}
+.story-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    margin-top: 34px;
+}
+.story-body {
+    font-family: var(--type-body-cn);
+    font-size: 1.12rem;
+    line-height: var(--leading-cozy);
+    color: #DCDCDC;
+    font-weight: 500;
+    padding-right: 46px;
+    border-right: 4px solid var(--brody-red);
+}
+.story-body b { color: var(--brody-red); font-weight: 900; }
+.story-side {
+    background: var(--brody-red);
+    color: #000;
+    padding: 30px 30px 26px 30px;
+    margin-left: -4px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+}
+.story-side-label {
+    font-family: var(--type-mono);
+    font-weight: 700;
+    font-size: var(--type-tag);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: #000;
+}
+.story-side-key {
+    font-family: var(--type-display-cn);
+    font-weight: 900;
+    font-size: 2.2rem;
+    line-height: var(--leading-tight);
+    color: #000;
+    letter-spacing: 0.04em;
+    margin: 0.5em 0;
+}
+.story-side-en {
+    font-family: var(--type-latin-display);
+    font-size: 1.5rem;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: #000;
+}
+
+/* ============== Layout: aphorism 金句 ============== */
+.aphorism { padding: 0; }
+.aphorism .stage { justify-content: stretch; gap: 0; }
+.aphorism-band {
+    flex: 0 0 100%;
+    background: var(--brody-red);
+    position: relative;
+    padding: 84px 88px 72px 88px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+.aphorism .glyph-quote {
+    position: absolute;
+    right: -2%; top: -26%;
+    font-size: 38rem;
+    font-family: var(--type-latin-display);
+    color: #000;
+    opacity: 0.16;
+    line-height: 1;
+    z-index: 1;
+}
+.aphorism-mark {
+    font-family: var(--type-mono); font-weight: 700;
+    color: #000;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-extreme); text-transform: uppercase;
+    z-index: 3;
+}
+.aphorism-quote {
+    position: relative; z-index: 3;
+    max-width: 21ch;
+}
+.aphorism-quote .quote-cn {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: 5.6rem; line-height: 0.98;
+    color: #000;
+    letter-spacing: 0.03em;
+}
+.aphorism-quote .quote-en {
+    font-family: var(--type-latin-display);
+    font-size: 2.4rem;
+    color: #000;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    margin-top: 0.6em;
+    display: block;
+}
+.aphorism-attr {
+    font-family: var(--type-mono); font-weight: 700;
+    color: #000;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-wide); text-transform: uppercase;
+    z-index: 3;
+}
+.aphorism-attr::before { content: '////  '; }
+
+/* ============== Layout: coda 终章 ============== */
+.coda .stage { justify-content: center; align-items: flex-start; }
+.coda .glyph-end {
+    position: absolute;
+    right: -6%; bottom: -38%;
+    font-size: 32rem;
+    color: var(--brody-red);
+    z-index: 1;
+}
+.coda-pre {
+    font-family: var(--type-mono); font-weight: 700;
+    background: #FFFFFF; color: #000;
+    font-size: var(--type-small);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    padding: 0.5em 1em;
+    align-self: flex-start;
+    margin-bottom: 30px;
+    z-index: 3;
+}
+.coda-headline {
+    font-family: var(--type-display-cn); font-weight: 900;
+    font-size: var(--type-display); line-height: var(--leading-crush);
+    color: var(--stage-ink);
+    margin-bottom: 0.5em; letter-spacing: 0.03em;
+    max-width: 13ch;
+    z-index: 3;
+}
+.coda-headline .accent-key { color: var(--brody-red); }
+.coda-post {
+    font-family: var(--type-body-cn); font-weight: 600;
+    font-size: var(--type-h3); color: #C4C4C4;
+    max-width: 34ch; line-height: var(--leading-cozy);
+    letter-spacing: 0.06em;
+    z-index: 3;
+}
+.coda-sign {
+    margin-top: 48px;
+    font-family: var(--type-mono); color: var(--brody-red);
+    font-size: var(--type-small); font-weight: 700;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    z-index: 3;
+}
+.coda-sign::before {
+    content: ''; display: inline-block;
+    width: 40px; height: 8px;
+    background: var(--brody-red);
+    vertical-align: middle; margin-right: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="求知若饥 · 乔布斯斯坦福演讲 · Brody 风 demo">
+
+<!-- 1. 封面 front-frame -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-main">
+            <div class="glyph-circle" aria-hidden="true"></div>
+            <div class="glyph-bar" aria-hidden="true"></div>
+            <div class="cover-top unfold">
+                <span class="latin">DECK / 2005</span>
+                <span class="latin hot">STANFORD</span>
+                <span class="latin">EP·01 / 05</span>
+            </div>
+            <div class="cover-core unfold">
+                <div class="cover-kicker latin">Three Stories</div>
+                <h1 class="cover-title">求知<br>若<span class="accent-key">饥</span></h1>
+                <p class="cover-sub">乔布斯 · 斯坦福毕业演讲 ——<br>把生命的点连成线</p>
+            </div>
+            <div class="cover-bottom unfold latin">▶  CLICK / ARROW TO READ</div>
+        </div>
+        <div class="cover-side">
+            <div class="glyph-tri" aria-hidden="true"></div>
+            <div class="cover-side-num unfold latin">2005 · COMMENCEMENT</div>
+            <div class="cover-side-vert unfold latin">STAY<br>HUN<br>GRY</div>
+            <div class="cover-side-mark unfold">虚心<br>若愚</div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin">01 / 05</span></div>
+</section>
+
+<!-- 2. 章节扉 chapter-plate PART 01 -->
+<section class="frame chapter-plate" data-title="PART 01 把点连起来">
+    <div class="stage">
+        <div class="glyph-part latin" aria-hidden="true">1</div>
+        <div class="chapter-num unfold latin">PART · 01</div>
+        <h2 class="chapter-title unfold">连点<br>成<span class="accent-key">线</span></h2>
+        <div class="chapter-en unfold latin">Connecting The Dots</div>
+        <p class="chapter-lead unfold">退学、睡地板、捡可乐瓶换饭钱。<br>当下毫无意义的碎片，只有回头看时才串成一条路。</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin">02 / 05</span></div>
+</section>
+
+<!-- 3. 正文主体 story -->
+<section class="frame story" data-title="第一个故事 · 连点成线">
+    <div class="stage">
+        <div class="glyph-mark latin" aria-hidden="true">●</div>
+        <div class="cue unfold latin">STORY 01 // CURIOSITY</div>
+        <div class="story-head unfold">
+            <div class="story-index latin">01</div>
+            <h2 class="story-headline">凭直觉<br>撞上的东西</h2>
+        </div>
+        <div class="story-grid">
+            <p class="story-body unfold">里德学院六个月退学，又旁听了十八个月。没有宿舍，睡朋友房间的地板；靠捡可乐瓶换五美分硬币买饭；每个周日步行七英里去吃一顿好饭。<b>我爱那段日子。</b>凭好奇心和直觉偶然撞上的许多东西，后来都变得无价。</p>
+            <div class="story-side unfold">
+                <div class="story-side-label latin">THE POINT</div>
+                <div class="story-side-key">你无法预先<br>连起这些点</div>
+                <div class="story-side-en latin">Trust The Dots</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">STORY 01</span><span class="latin">03 / 05</span></div>
+</section>
+
+<!-- 4. 金句 aphorism -->
+<section class="frame aphorism" data-title="金句 · 爱与失去">
+    <div class="stage">
+        <div class="aphorism-band">
+            <div class="glyph-quote latin" aria-hidden="true">"</div>
+            <div class="aphorism-mark unfold latin">EPIGRAPH · ON LOVE &amp; LOSS</div>
+            <blockquote class="aphorism-quote unfold">
+                <p class="quote-cn">做出伟大事情<br>唯一的方法<br>是<span style="color:#FFFFFF;">热爱</span>它。</p>
+            </blockquote>
+            <div class="aphorism-attr unfold latin">Steve Jobs · Stanford 2005</div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">QUOTE</span><span class="latin">04 / 05</span></div>
+</section>
+
+<!-- 5. 终章 coda -->
+<section class="frame coda" data-title="终章 · Stay Hungry">
+    <div class="stage">
+        <div class="glyph-end latin" aria-hidden="true">▲</div>
+        <div class="coda-pre unfold latin">END · THREE STORIES · 2005</div>
+        <h1 class="coda-headline unfold">STAY<br>HUNGRY<br>STAY <span class="accent-key">FOOLISH</span></h1>
+        <p class="coda-post unfold">你的时间有限，不要为别人而活。<br>不要让他人的喧嚣，淹没你内心的声音。</p>
+        <div class="coda-sign unfold latin">A LONGTEXT-TO-SLIDES DEMO · BRODY</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin">05 / 05</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

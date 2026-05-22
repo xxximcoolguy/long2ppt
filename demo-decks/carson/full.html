@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>STAY HUNGRY · Carson 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Oswald:wght@300;500;700&family=Noto+Sans+SC:wght@300;400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #050505);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #ffffff);
+    color: var(--stage-ink, #000000);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    /* Carson: 不用 flex 居中 —— 帧内全部 absolute 自由摆放 */
+    opacity: 0; visibility: hidden;
+    transform: translateX(70px) rotate(0.6deg);
+    transition:
+        opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0s linear 0.5s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateX(0) rotate(0deg);
+    transition:
+        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.04s,
+        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateX(-70px) rotate(-1.2deg); }
+/* Carson: .stage 不做内容容器 —— 仅占位，禁止 flex 居中 */
+.stage { position: absolute; inset: 0; overflow: hidden; }
+
+/* ============== Carson 配色：黑白 + 一抹电光黄 ============== */
+:root {
+    font-size: 14px;
+    --stage-void: #050505;
+    --stage-bg: #ffffff;        /* carson-paper */
+    --stage-ink: #000000;       /* carson-void */
+    --stage-soft: #5a5a5a;
+    --accent-volt: #f5ff00;     /* carson-volt 电光黄 —— 唯一强调色 */
+
+    --type-display: 'Anton', 'Archivo Black', 'Noto Sans SC', sans-serif;
+    --type-black: 'Archivo Black', 'Anton', sans-serif;
+    --type-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --type-cond: 'Oswald', 'Noto Sans SC', sans-serif;
+    --type-mono: 'IBM Plex Mono', monospace;
+}
+
+/* ============== Runner & Rail ============== */
+/* runner 故意不水平对齐，分别错位摆放 */
+.runner-mark {
+    position: absolute; z-index: 8;
+    font-family: var(--type-mono);
+    font-size: 0.74rem; letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+.runner-page {
+    position: absolute; z-index: 8;
+    font-family: var(--type-display);
+    line-height: 0.8;
+}
+
+.rail {
+    position: fixed; right: 18px; top: 50%;
+    transform: translateY(-50%) rotate(4deg);
+    display: flex; flex-direction: column; gap: 13px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 11px; height: 4px; border-radius: 0;
+    background: #000; opacity: 0.22;
+    border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.25s, transform 0.25s, background 0.25s;
+}
+.rail .rail-pip:nth-child(even) { transform: translateX(-5px); }
+.rail .rail-pip:hover { opacity: 0.55; }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--accent-volt); opacity: 1;
+    width: 22px;
+    transform: translateX(0) scaleY(2.4);
+    box-shadow: 0 0 0 1px #000;
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 28px;
+    z-index: 90;
+    font-family: var(--type-mono);
+    font-size: 10px;
+    color: #999; opacity: 0.6;
+    letter-spacing: 0.28em;
+    pointer-events: none;
+    transform: rotate(-1.5deg);
+}
+
+/* ============== Carson unfold —— 错位入场 ============== */
+.unfold {
+    opacity: 0; transform: translateY(20px) rotate(-2deg);
+    transition:
+        opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.frame[data-state="active"] .unfold { opacity: 1; }
+.frame[data-state="active"] .unfold:nth-of-type(1) { transition-delay: 0.08s; }
+.frame[data-state="active"] .unfold:nth-of-type(2) { transition-delay: 0.16s; }
+.frame[data-state="active"] .unfold:nth-of-type(3) { transition-delay: 0.24s; }
+.frame[data-state="active"] .unfold:nth-of-type(4) { transition-delay: 0.32s; }
+.frame[data-state="active"] .unfold:nth-of-type(5) { transition-delay: 0.40s; }
+.frame[data-state="active"] .unfold:nth-of-type(6) { transition-delay: 0.48s; }
+.frame[data-state="active"] .unfold:nth-of-type(7) { transition-delay: 0.56s; }
+/* 入场后各自停在错位角度，靠下面具体 class 重设 transform */
+
+/* ============== FRAME 1 · 封面 front-frame ============== */
+/* 解构错位定调：巨型标题越界出血、字母被裁、电光黄块斜插、正文超小斜置 */
+.front-frame { background: #ffffff; }
+.front-frame .stage::before {
+    /* 满版斜置色块作底，打破白底克制 */
+    content: '';
+    position: absolute;
+    left: -8%; top: 46%; width: 116%; height: 240px;
+    background: var(--accent-volt);
+    transform: rotate(-7deg);
+    z-index: 0;
+}
+.front-kicker {
+    position: absolute; top: 54px; left: 70px; z-index: 6;
+    font-family: var(--type-mono);
+    font-size: 0.78rem; letter-spacing: 0.34em;
+    text-transform: uppercase;
+    transform: rotate(-2deg);
+}
+.front-kicker b { background: #000; color: var(--accent-volt); padding: 2px 7px; }
+.front-title {
+    position: absolute; z-index: 4;
+    font-family: var(--type-display);
+    text-transform: uppercase;
+    line-height: 0.74;
+    color: #000;
+}
+/* 三行标题各自越界、错位、旋转 —— 第二行越出左边界 38% */
+.front-title.l1 {
+    top: 96px; left: 58px;
+    font-size: 11.2rem;
+    transform: rotate(-3deg);
+    letter-spacing: -0.03em;
+}
+.front-title.l2 {
+    top: 248px; left: -16%;        /* 越出左边界 */
+    font-size: 15.4rem;
+    color: #000;
+    transform: rotate(2.4deg);
+    letter-spacing: -0.05em;
+    mix-blend-mode: difference;     /* 与黄块交叠处反相 */
+}
+.front-title.l3 {
+    top: 452px; left: 132px;
+    font-size: 9.6rem;
+    transform: rotate(-1.6deg);
+    letter-spacing: -0.02em;
+    color: #fff;
+    -webkit-text-stroke: 3px #000;  /* 空心字 —— 损毁感 */
+}
+/* 中文副标 —— 旋转贴在黄块上，方块字本体不切 */
+.front-cn {
+    position: absolute; z-index: 7;
+    top: 372px; right: 84px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 2.35rem;
+    line-height: 1.0;
+    color: #000;
+    transform: rotate(5deg);
+    text-align: right;
+}
+.front-cn small {
+    display: block;
+    font-family: var(--type-mono);
+    font-size: 0.72rem; font-weight: 400;
+    letter-spacing: 0.2em;
+    margin-top: 8px;
+    color: #000;
+}
+/* 超小正文，斜置，与色块重叠 */
+.front-micro {
+    position: absolute; z-index: 7;
+    bottom: 86px; left: 86px;
+    width: 17ch;
+    font-family: var(--type-cn);
+    font-size: 0.62rem; font-weight: 400;
+    line-height: 1.45;
+    color: #000;
+    transform: rotate(-3.5deg);
+}
+.front-slash {
+    position: absolute; z-index: 5;
+    bottom: 40px; right: -40px;
+    font-family: var(--type-display);
+    font-size: 6rem; color: #000;
+    transform: rotate(-90deg);
+    transform-origin: right bottom;
+    letter-spacing: 0.1em;
+}
+
+/* ============== FRAME 2 · 章节扉 chapter-plate ============== */
+/* PART 01 —— 巨型数字越界 + 标题撕裂 */
+.chapter-plate { background: #000000; color: #fff; }
+.chapter-plate .stage::before {
+    content: '';
+    position: absolute;
+    right: -14%; top: -10%; width: 70%; height: 130%;
+    background: var(--accent-volt);
+    transform: rotate(9deg);
+    z-index: 0;
+}
+.chap-part {
+    position: absolute; z-index: 5;
+    top: 64px; left: 64px;
+    font-family: var(--type-mono);
+    font-size: 0.82rem; letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-volt);
+    transform: rotate(-1.5deg);
+}
+.chap-bignum {
+    /* 超大 01 越出顶部与右侧 */
+    position: absolute; z-index: 2;
+    top: -130px; right: -70px;
+    font-family: var(--type-display);
+    font-size: 34rem;
+    line-height: 0.7;
+    color: #000;
+    transform: rotate(6deg);
+}
+.chap-title-cn {
+    position: absolute; z-index: 6;
+    top: 224px; left: 52px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 7.6rem;
+    line-height: 0.92;
+    color: #fff;
+}
+.chap-title-cn .hi {
+    color: #000;
+    background: var(--accent-volt);
+    padding: 0 0.08em;
+    display: inline-block;
+    transform: rotate(-4deg) translateY(-6px);
+}
+.chap-en {
+    position: absolute; z-index: 6;
+    top: 188px; left: 60px;
+    font-family: var(--type-display);
+    font-size: 2.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-volt);
+    transform: rotate(-2deg);
+}
+.chap-lead {
+    position: absolute; z-index: 6;
+    bottom: 78px; left: 56px;
+    width: 30ch;
+    font-family: var(--type-cn);
+    font-weight: 300;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #fff;
+    transform: rotate(-1deg);
+    border-left: 4px solid var(--accent-volt);
+    padding-left: 16px;
+}
+.chap-quote-mark {
+    position: absolute; z-index: 3;
+    bottom: -90px; right: 40px;
+    font-family: var(--type-display);
+    font-size: 22rem;
+    color: #000;
+    transform: rotate(-8deg);
+    opacity: 0.85;
+}
+
+/* ============== FRAME 3 · 正文主体 ============== */
+/* 退学/旁听叙事 —— 三块文字错位重叠、负行距、字号剧变 */
+.body-frame { background: #ffffff; }
+.body-frame .stage::before {
+    content: '';
+    position: absolute;
+    left: 38%; top: -6%; width: 4px; height: 112%;
+    background: #000;
+    transform: rotate(7deg);
+    z-index: 1;
+}
+.body-cue {
+    position: absolute; z-index: 6;
+    top: 56px; left: 64px;
+    font-family: var(--type-mono);
+    font-size: 0.76rem; letter-spacing: 0.24em;
+    text-transform: uppercase;
+    transform: rotate(-2deg);
+}
+.body-cue b { background: var(--accent-volt); padding: 2px 6px; }
+/* 巨型引导词，越出左边界，与下面正文重叠 */
+.body-huge {
+    position: absolute; z-index: 3;
+    top: 70px; left: -7%;
+    font-family: var(--type-display);
+    font-size: 16rem;
+    line-height: 0.72;
+    color: #000;
+    transform: rotate(-4deg);
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+}
+.body-huge .stroke {
+    color: #fff;
+    -webkit-text-stroke: 4px #000;
+}
+/* 中文大标 —— 压在巨型词上，重叠 ~50% */
+.body-cn-head {
+    position: absolute; z-index: 5;
+    top: 264px; left: 96px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 4.6rem;
+    line-height: 0.96;
+    color: #000;
+    transform: rotate(2deg);
+}
+.body-cn-head em {
+    font-style: normal;
+    background: #000; color: var(--accent-volt);
+    padding: 0 0.06em;
+}
+/* 右侧超小正文块，斜置 */
+.body-micro {
+    position: absolute; z-index: 6;
+    top: 168px; right: 70px;
+    width: 21ch;
+    font-family: var(--type-cn);
+    font-weight: 400;
+    font-size: 0.74rem;
+    line-height: 1.7;
+    color: #000;
+    transform: rotate(3.5deg);
+}
+.body-micro .lead {
+    display: block;
+    font-family: var(--type-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    color: #000;
+    margin-bottom: 8px;
+}
+/* 右下角的小叙事条目，更小，更斜 */
+.body-note {
+    position: absolute; z-index: 6;
+    bottom: 96px; right: 92px;
+    width: 24ch;
+    font-family: var(--type-cn);
+    font-weight: 300;
+    font-size: 0.66rem;
+    line-height: 1.55;
+    color: #000;
+    transform: rotate(-5deg);
+    border-top: 3px solid #000;
+    padding-top: 10px;
+}
+/* 大号金句，跨越底部、被边缘切 */
+.body-kicker {
+    position: absolute; z-index: 4;
+    bottom: 30px; left: 44px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 2.5rem;
+    line-height: 1.0;
+    color: #000;
+    transform: rotate(-2.5deg);
+    white-space: nowrap;
+}
+.body-kicker u {
+    text-decoration: none;
+    color: #fff;
+    -webkit-text-stroke: 1.5px #000;
+}
+
+/* ============== FRAME 4 · 金句 frame-4 ============== */
+/* "生活会用一块砖头砸你的脑袋" —— 满版黑底，巨字越界叠加 */
+.shout-frame { background: #000000; color: #fff; }
+.shout-frame .stage::before {
+    /* 倾斜电光黄宽条，巨字压在上面 */
+    content: '';
+    position: absolute;
+    left: -10%; top: 30%; width: 120%; height: 220px;
+    background: var(--accent-volt);
+    transform: rotate(-6deg);
+    z-index: 1;
+}
+.shout-tag {
+    position: absolute; z-index: 6;
+    top: 58px; right: 70px;
+    font-family: var(--type-mono);
+    font-size: 0.78rem; letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent-volt);
+    transform: rotate(2.5deg);
+}
+/* 英文金句巨字 —— 三行各自越界错位 */
+.shout-en {
+    position: absolute; z-index: 2;
+    font-family: var(--type-display);
+    text-transform: uppercase;
+    line-height: 0.74;
+    letter-spacing: -0.03em;
+}
+.shout-en.s1 {
+    top: 64px; left: -5%;
+    font-size: 9.2rem;
+    color: #fff;
+    transform: rotate(-3deg);
+}
+.shout-en.s2 {
+    top: 196px; left: 120px;
+    font-size: 13.5rem;
+    color: #000;                  /* 落在黄条上 */
+    transform: rotate(-5.5deg);
+    z-index: 3;
+}
+.shout-en.s3 {
+    top: 388px; right: -8%;
+    font-size: 10rem;
+    color: #fff;
+    -webkit-text-stroke: 3px #fff;
+    -webkit-text-fill-color: transparent;
+    transform: rotate(4deg);
+}
+/* 中文金句 —— 旋转贴底，方块字本体完整不切 */
+.shout-cn {
+    position: absolute; z-index: 6;
+    bottom: 70px; left: 70px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 3.1rem;
+    line-height: 1.05;
+    color: #fff;
+    transform: rotate(-2deg);
+}
+.shout-cn .hit {
+    color: #000;
+    background: var(--accent-volt);
+    padding: 0 0.08em;
+    display: inline-block;
+    transform: rotate(3deg);
+}
+.shout-attr {
+    position: absolute; z-index: 6;
+    bottom: 80px; right: 78px;
+    font-family: var(--type-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-volt);
+    transform: rotate(-4deg);
+    text-align: right;
+}
+.shout-attr small { display:block; color:#fff; opacity:0.55; margin-top:5px; letter-spacing:0.12em; }
+
+/* ============== FRAME 5 · 终章 coda ============== */
+/* Stay Hungry Stay Foolish —— 留白偏侧，单点焦点 */
+.coda { background: #ffffff; }
+.coda .stage::before {
+    content: '';
+    position: absolute;
+    left: -12%; bottom: -24%; width: 64%; height: 64%;
+    background: var(--accent-volt);
+    transform: rotate(11deg);
+    z-index: 0;
+}
+.coda-pre {
+    position: absolute; z-index: 6;
+    top: 60px; left: 70px;
+    font-family: var(--type-mono);
+    font-size: 0.76rem; letter-spacing: 0.3em;
+    text-transform: uppercase;
+    transform: rotate(-1.5deg);
+}
+.coda-pre b { background:#000; color:var(--accent-volt); padding:2px 7px; }
+/* 巨字双行，偏左上、越出右边界 */
+.coda-en {
+    position: absolute; z-index: 4;
+    font-family: var(--type-display);
+    text-transform: uppercase;
+    line-height: 0.72;
+    color: #000;
+    letter-spacing: -0.04em;
+}
+.coda-en.c1 {
+    top: 132px; left: 56px;
+    font-size: 13rem;
+    transform: rotate(-2.6deg);
+}
+.coda-en.c2 {
+    top: 312px; left: 24%;          /* 越出右边界 */
+    font-size: 13rem;
+    transform: rotate(3.2deg);
+    color: #fff;
+    -webkit-text-stroke: 4px #000;
+}
+/* 中文译文 —— 斜置在右上空白处 */
+.coda-cn {
+    position: absolute; z-index: 6;
+    top: 120px; right: 70px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 2.5rem;
+    line-height: 1.05;
+    color: #000;
+    text-align: right;
+    transform: rotate(4deg);
+}
+.coda-cn .hi { color: #000; background: var(--accent-volt); padding: 0 0.06em; }
+/* 落款，斜贴黄块上 */
+.coda-sign {
+    position: absolute; z-index: 6;
+    bottom: 64px; right: 80px;
+    font-family: var(--type-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #000;
+    transform: rotate(-3deg);
+    text-align: right;
+}
+.coda-sign b { display:block; font-family:var(--type-display); font-size:1.3rem; letter-spacing:0.04em; margin-top:4px; }
+.coda-thanks {
+    position: absolute; z-index: 5;
+    bottom: 46px; left: 60px;
+    font-family: var(--type-cn);
+    font-weight: 900;
+    font-size: 4rem;
+    color: #000;
+    transform: rotate(-2deg);
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="Stay Hungry Stay Foolish · 乔布斯斯坦福演讲 · Carson 风">
+
+<!-- ========== FRAME 1 · 封面 ========== -->
+<section class="frame frame-1 front-frame" data-title="封面" data-state="active">
+    <div class="stage"></div>
+    <div class="front-kicker unfold"><b>COMMENCEMENT</b> · STANFORD 2005</div>
+    <h1 class="front-title l1 unfold">STAY</h1>
+    <h1 class="front-title l2 unfold">HUNGRY</h1>
+    <h1 class="front-title l3 unfold">FOOLISH</h1>
+    <div class="front-cn unfold">求知若饥<br>虚心若愚<small>STEVE JOBS · 三个故事</small></div>
+    <p class="front-micro unfold">我从未从大学毕业。今天想给你们讲我人生中的三个故事 —— 退学、被炒、和一次与死亡的擦肩。就这些，不是什么大事。</p>
+    <div class="front-slash unfold">// 01</div>
+    <span class="runner-mark" style="bottom:40px; right:auto; left:70px; transform:rotate(2deg);">COVER · STAY HUNGRY</span>
+</section>
+
+<!-- ========== FRAME 2 · 章节扉 PART 01 ========== -->
+<section class="frame frame-2 chapter-plate" data-title="PART 01 把点连起来">
+    <div class="stage"></div>
+    <div class="chap-part unfold">PART · 01 — THREE STORIES</div>
+    <div class="chap-bignum">01</div>
+    <div class="chap-en unfold">CONNECTING THE DOTS</div>
+    <h2 class="chap-title-cn unfold">把生命的<br><span class="hi">点</span>连起来</h2>
+    <p class="chap-lead unfold">你不能预先把点点滴滴连接起来 —— 只有在回头看时，才能发现它们之间的联系。</p>
+    <div class="chap-quote-mark">”</div>
+    <span class="runner-page" style="bottom:20px; left:56px; font-size:5.2rem; color:#000;">02</span>
+</section>
+
+<!-- ========== FRAME 3 · 正文主体 退学叙事 ========== -->
+<section class="frame frame-3 body-frame" data-title="退学 · 旁听 · 直觉">
+    <div class="stage"></div>
+    <div class="body-cue unfold"><b>STORY 01</b> · I DROPPED OUT</div>
+    <h2 class="body-huge unfold">DROP<br><span class="stroke">OUT</span></h2>
+    <h3 class="body-cn-head unfold">读了六个月<br>就<em>退学</em>了</h3>
+    <div class="body-micro unfold">
+        <span class="lead">// REED COLLEGE, 1972</span>
+        我从里德学院读了六个月就退学，但又留校旁听了大约十八个月才真正离开。没有宿舍，睡在朋友房间的地板上。
+    </div>
+    <p class="body-note unfold">靠捡可乐瓶换 5 美分硬币买饭。每个周日步行 7 英里穿过城市，到神庙吃一周里唯一一顿好饭。我爱那段日子。</p>
+    <div class="body-kicker unfold">凭<u>好奇心</u>撞上的东西 — 后来都变得无价</div>
+    <span class="runner-mark" style="top:58px; right:64px; transform:rotate(3deg);">03 / 05</span>
+</section>
+
+<!-- ========== FRAME 4 · 金句 被炒 ========== -->
+<section class="frame frame-4 shout-frame" data-title="金句 · 被炒">
+    <div class="stage"></div>
+    <div class="shout-tag unfold">STORY 02 · LOVE &amp; LOSS</div>
+    <h2 class="shout-en s1 unfold">LIFE WILL</h2>
+    <h2 class="shout-en s2 unfold">HIT YOU</h2>
+    <h2 class="shout-en s3 unfold">HARD</h2>
+    <h3 class="shout-cn unfold">有时候生活会用一块<span class="hit">砖头</span><br>砸你的脑袋 —— 别丧失信心。</h3>
+    <div class="shout-attr unfold">STEVE JOBS<small>FIRED FROM APPLE · 1985</small></div>
+    <span class="runner-mark" style="bottom:36px; left:70px; color:#f5ff00; transform:rotate(-3deg);">04 / 05 · KEEP FAITH</span>
+</section>
+
+<!-- ========== FRAME 5 · 终章 coda ========== -->
+<section class="frame frame-5 coda" data-title="终章 · Stay Hungry Stay Foolish">
+    <div class="stage"></div>
+    <div class="coda-pre unfold"><b>STORY 03 · DEATH</b> — AND A FAREWELL</div>
+    <h1 class="coda-en c1 unfold">STAY</h1>
+    <h1 class="coda-en c2 unfold">HUNGRY.</h1>
+    <div class="coda-cn unfold">你的时间有限<br>别为<span class="hi">别人</span>而活</div>
+    <div class="coda-sign unfold">A LONGTEXT-TO-SLIDES DEMO<b>CARSON</b></div>
+    <div class="coda-thanks unfold">虚心若愚。</div>
+    <span class="runner-mark" style="top:60px; right:72px; transform:rotate(-2deg);">END · 05 / 05</span>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联（照搬 rams） ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

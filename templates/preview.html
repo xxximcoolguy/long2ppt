@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>longtext-to-slides · 风格选择</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #f6f5f1;
+        --bg-card: #ffffff;
+        --bg-muted: #ecebe6;
+        --ink: #1a1a18;
+        --ink-soft: #4a4a47;
+        --ink-faint: #8a8a85;
+        --accent: #b8472f;
+        --accent-soft: #d4a574;
+        --line: #d6d3cb;
+        --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+        --shadow-hover: 0 4px 12px rgba(0,0,0,0.08), 0 24px 48px rgba(0,0,0,0.12);
+        --type-cn: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+        --type-body: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        --type-mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--ink); font-family: var(--type-body); font-size: 16px; line-height: 1.6; }
+    body { padding: 0 0 80px; }
+
+    /* ============ HERO ============ */
+    .hero {
+        padding: 64px 7vw 48px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg);
+    }
+    .hero-eyebrow {
+        font-family: var(--type-mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin-bottom: 16px;
+    }
+    .hero-title {
+        font-family: var(--type-cn);
+        font-size: clamp(28px, 4vw, 44px);
+        font-weight: 500;
+        line-height: 1.25;
+        color: var(--ink);
+        margin-bottom: 24px;
+        letter-spacing: -0.01em;
+    }
+    .hero-title .accent { color: var(--accent); }
+    .hero-meta {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--ink-soft);
+    }
+    .hero-meta .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+    }
+    .hero-meta .meta-item strong { font-weight: 500; color: var(--ink); }
+
+    /* ============ SECTION ============ */
+    section.zone {
+        padding: 48px 7vw 24px;
+    }
+    .zone-title {
+        font-family: var(--type-cn);
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--ink);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .zone-title::before {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 18px;
+        background: var(--accent);
+    }
+    .zone-subtitle {
+        font-size: 13px;
+        color: var(--ink-faint);
+        margin-bottom: 28px;
+        margin-left: 16px;
+    }
+
+    /* ============ SCENE PICKER ============ */
+    .scene-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .scene-card {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        padding: 18px 20px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        border-radius: 4px;
+    }
+    .scene-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+    .scene-card.active {
+        background: var(--ink);
+        color: var(--bg);
+        border-color: var(--ink);
+    }
+    .scene-card .emoji { font-size: 24px; display: block; margin-bottom: 8px; }
+    .scene-card .label { font-family: var(--type-cn); font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+    .scene-card .subtitle { font-size: 12px; color: var(--ink-faint); }
+    .scene-card.active .subtitle { color: var(--bg-muted); }
+
+    /* ============ MASTER CARDS ============ */
+    .master-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 16px;
+    }
+    .master-card {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        overflow: visible;          /* 允许 hover 大图浮窗溢出 */
+        cursor: pointer;
+        transition: all 0.22s ease;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+    }
+    .master-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--ink);
+    }
+    .master-card.primary { border: 2px solid var(--accent); }
+    .master-card.primary::before {
+        content: '主推';
+        position: absolute;
+        background: var(--accent);
+        color: var(--bg);
+        padding: 4px 12px;
+        font-size: 11px;
+        font-family: var(--type-mono);
+        letter-spacing: 0.1em;
+        z-index: 2;
+    }
+    .master-card { position: relative; }
+
+    .master-images {
+        display: block;
+        background: var(--bg-muted);
+        aspect-ratio: 16/9;
+        overflow: hidden;
+        position: relative;
+    }
+    .master-images > div {
+        background: var(--bg-muted);
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+    }
+    .master-images img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;     /* 完整等比，不裁切——大留白风格也能识别 */
+        display: block;
+    }
+    /* hover 浮窗大图：脱离卡片裁切框，飘在所有卡片之上 */
+    .master-card { transition: z-index 0s linear 0.32s, all 0.22s ease; }
+    .master-card:hover { z-index: 200; transition-delay: 0s; }
+    .master-images-zoom {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        aspect-ratio: 16/9;
+        transform: scale(0.96);
+        transform-origin: center center;   /* JS 在 hover 时按卡片在视口位置动态改 */
+        opacity: 0;
+        pointer-events: none;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        box-shadow: 0 24px 64px -8px rgba(0,0,0,0.32),
+                    0 8px 24px -4px rgba(0,0,0,0.18);
+        z-index: 999;
+        overflow: hidden;
+        transition: opacity 0.28s cubic-bezier(0.2, 0.85, 0.3, 1),
+                    transform 0.32s cubic-bezier(0.2, 0.85, 0.3, 1);
+    }
+    .master-images-zoom img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+    .master-card:hover .master-images-zoom {
+        opacity: 1;
+        transform: scale(1.9);
+    }
+    .master-images .placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--type-mono);
+        font-size: 10px;
+        color: var(--ink-faint);
+        letter-spacing: 0.1em;
+    }
+
+    /* demo 未就绪时整图区显示友好占位 */
+    .master-images.pending {
+        grid-template-columns: 1fr;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 6px;
+        padding: 28px 20px;
+        background: var(--bg-muted);
+        border-bottom: 1px solid var(--line);
+        aspect-ratio: 16/9;
+    }
+    .master-images.pending .pending-emoji {
+        font-size: 26px;
+        opacity: 0.5;
+        line-height: 1;
+    }
+    .master-images.pending .pending-text {
+        font-family: var(--type-mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: var(--ink-faint);
+        text-transform: uppercase;
+    }
+    .master-images.pending .pending-tip {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-family: var(--type-body);
+        line-height: 1.5;
+        text-align: center;
+        margin-top: 2px;
+    }
+    /* 灰色"待生成"小标记 */
+    .btn[disabled] {
+        cursor: not-allowed;
+        opacity: 0.45;
+        pointer-events: none;
+    }
+    .btn-label-pending {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 5px;
+        font-size: 9px;
+        color: var(--ink-faint);
+        background: var(--bg-muted);
+        font-family: var(--type-mono);
+        letter-spacing: 0.1em;
+        vertical-align: middle;
+    }
+    /* 卡片角标：demo 已就绪绿点 */
+    .master-card .demo-status {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 2;
+        font-size: 10px;
+        font-family: var(--type-mono);
+        letter-spacing: 0.1em;
+        padding: 3px 8px;
+        background: rgba(255,255,255,0.92);
+        color: var(--ink-faint);
+        border: 1px solid var(--line);
+    }
+    .master-card .demo-status.ready {
+        color: #2d7a3f;
+        border-color: #b7d6c1;
+    }
+
+    .master-body { padding: 20px 22px 22px; }
+    .master-display-name {
+        font-family: var(--type-cn);
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--ink);
+        margin-bottom: 6px;
+        letter-spacing: -0.01em;
+    }
+    .master-oneliner {
+        font-size: 14px;
+        color: var(--ink-soft);
+        line-height: 1.55;
+        margin-bottom: 14px;
+        min-height: 44px;
+    }
+    .master-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+    .master-tags span {
+        font-size: 11px;
+        font-family: var(--type-mono);
+        color: var(--ink-faint);
+        padding: 2px 8px;
+        background: var(--bg-muted);
+        letter-spacing: 0.05em;
+    }
+    .master-action {
+        display: flex;
+        gap: 8px;
+    }
+    .btn {
+        font-family: var(--type-body);
+        font-size: 13px;
+        font-weight: 500;
+        padding: 10px 18px;
+        border: 1px solid var(--ink);
+        background: var(--bg-card);
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border-radius: 2px;
+    }
+    .btn:hover { background: var(--ink); color: var(--bg); }
+    .btn.primary { background: var(--ink); color: var(--bg); }
+    .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+    /* ============ MIX (M3 占位) ============ */
+    .mix-zone {
+        background: var(--bg-card);
+        border: 1px dashed var(--line);
+        padding: 32px 36px;
+        margin: 16px 0 8px;
+        border-radius: 4px;
+    }
+    .mix-zone h3 {
+        font-family: var(--type-cn);
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: var(--ink);
+    }
+    .mix-zone p { font-size: 13px; color: var(--ink-soft); margin-bottom: 18px; }
+    .mix-form { display: flex; gap: 12px; }
+    .mix-input {
+        flex: 1;
+        font-family: var(--type-body);
+        font-size: 14px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        outline: none;
+    }
+    .mix-input:focus { border-color: var(--accent); background: var(--bg-card); }
+    .mix-input:disabled { cursor: not-allowed; opacity: 0.5; }
+    .mix-status {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--ink-faint);
+        font-family: var(--type-mono);
+    }
+
+    /* ============ EXPAND ALL ============ */
+    .expand-all {
+        text-align: center;
+        padding: 24px 0;
+        cursor: pointer;
+        font-family: var(--type-mono);
+        font-size: 12px;
+        letter-spacing: 0.15em;
+        color: var(--ink-faint);
+        text-transform: uppercase;
+        user-select: none;
+    }
+    .expand-all:hover { color: var(--accent); }
+    .expand-all::before { content: '— '; }
+    .expand-all::after { content: ' —'; }
+    .all-masters.hidden { display: none; }
+
+    /* ============ FOOTER STATE ============ */
+    .submit-bar {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: var(--ink);
+        color: var(--bg);
+        padding: 16px 7vw;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        z-index: 10;
+    }
+    .submit-bar.show { transform: translateY(0); }
+    .submit-bar .selection-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 14px;
+    }
+    .submit-bar .selection-info .check {
+        width: 24px; height: 24px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+    }
+    .submit-bar .btn-confirm {
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        padding: 12px 28px;
+        font-family: var(--type-body);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .submit-bar .btn-confirm:hover { background: var(--accent-soft); color: var(--ink); }
+
+    .toast {
+        position: fixed;
+        top: 24px; right: 24px;
+        background: var(--ink);
+        color: var(--bg);
+        padding: 14px 22px;
+        font-size: 13px;
+        border-left: 3px solid var(--accent);
+        opacity: 0;
+        transform: translateY(-12px);
+        transition: all 0.25s ease;
+        z-index: 20;
+        max-width: 360px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 720px) {
+        .hero { padding: 40px 5vw 32px; }
+        section.zone { padding: 32px 5vw 16px; }
+        .master-grid { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-eyebrow">longtext · to · slides — style picker</div>
+    <h1 class="hero-title">选一个风格<span class="accent">.</span></h1>
+    <div class="hero-meta">
+        <span class="meta-item">📄 文档：<strong id="doc-title">—</strong></span>
+        <span class="meta-item">📊 字数：<strong id="doc-words">—</strong></span>
+        <span class="meta-item">🎯 推荐主推：<strong id="recommended">—</strong></span>
+    </div>
+</div>
+
+<section class="zone">
+    <h2 class="zone-title">先选个场景</h2>
+    <div class="zone-subtitle">AI 会根据场景过滤合适的设计语言。不确定就选第一个，回头能换。</div>
+    <div class="scene-grid" id="scene-grid"></div>
+</section>
+
+<section class="zone">
+    <h2 class="zone-title">推荐风格</h2>
+    <div class="zone-subtitle">基于你的场景过滤过的候选 · 主推 1 + 次推 2-3 + 备选 0-2</div>
+    <div class="master-grid" id="recommended-grid"></div>
+</section>
+
+<section class="zone">
+    <h2 class="zone-title">还想试试别的（进阶）</h2>
+    <div class="zone-subtitle">用一句话描述你想要的感觉，AI 会从 14 位大师里给你混搭一套。<em>（M3 功能 · 当前为占位演示）</em></div>
+    <div class="mix-zone">
+        <h3>✨ 混搭一份独一无二的</h3>
+        <p>例：「冷静但有点叛逆」「温暖文人感」「极客但不冰冷」「东方又现代」</p>
+        <div class="mix-form">
+            <input class="mix-input" id="mix-input" placeholder="用一句话描述..." disabled />
+            <button class="btn primary" id="mix-btn" disabled>生成专属混搭</button>
+        </div>
+        <div class="mix-status" id="mix-status">⏳ M3 上线后可用 · 当前请使用主推/次推卡片选择</div>
+    </div>
+</section>
+
+<div class="expand-all" id="expand-toggle">查看全部 14 个大师风格</div>
+<section class="zone all-masters hidden" id="all-masters-zone">
+    <h2 class="zone-title">全部 14 位视觉大师</h2>
+    <div class="zone-subtitle">无场景过滤 · 适合你知道自己想要什么</div>
+    <div class="master-grid" id="all-grid"></div>
+</section>
+
+<div class="submit-bar" id="submit-bar">
+    <div class="selection-info">
+        <div class="check">✓</div>
+        <div>已选：<strong id="selected-name">—</strong> · <span id="selected-oneliner" style="opacity:0.7">—</span></div>
+    </div>
+    <button class="btn-confirm" id="confirm-btn">用这个风格 →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+const STATE = {
+    data: null,
+    selectedScene: null,
+    selectedMaster: null,
+    docTitle: '示例文档',
+    docWords: 2500,
+};
+
+// ============ LOAD DATA ============
+async function loadData() {
+    try {
+        const resp = await fetch('preview-data.json');
+        STATE.data = await resp.json();
+    } catch (e) {
+        showToast('加载预览数据失败：' + e.message);
+        return;
+    }
+
+    // 从 URL 参数读取上下文（style_preview.py 启动时注入）
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('title')) STATE.docTitle = params.get('title');
+    if (params.get('words')) STATE.docWords = parseInt(params.get('words'));
+    if (params.get('scene')) STATE.selectedScene = params.get('scene');
+
+    document.getElementById('doc-title').textContent = STATE.docTitle;
+    document.getElementById('doc-words').textContent = STATE.docWords.toLocaleString() + ' 字';
+
+    renderScenes();
+    renderRecommended();
+    renderAllMasters();
+    updateRecommendedLabel();
+}
+
+// ============ RENDER SCENES ============
+function renderScenes() {
+    const grid = document.getElementById('scene-grid');
+    grid.innerHTML = '';
+    STATE.data.scenes.forEach((scene) => {
+        const card = document.createElement('div');
+        card.className = 'scene-card' + (STATE.selectedScene === scene.code ? ' active' : '');
+        card.dataset.scene = scene.code;
+        card.innerHTML = `
+            <span class="emoji">${scene.emoji}</span>
+            <div class="label">${scene.label}</div>
+            <div class="subtitle">${scene.subtitle}</div>
+        `;
+        card.addEventListener('click', () => selectScene(scene.code));
+        grid.appendChild(card);
+    });
+    if (!STATE.selectedScene && STATE.data.scenes.length > 0) {
+        STATE.selectedScene = STATE.data.scenes[0].code;
+        document.querySelector(`.scene-card[data-scene="${STATE.selectedScene}"]`).classList.add('active');
+    }
+}
+
+function selectScene(code) {
+    STATE.selectedScene = code;
+    document.querySelectorAll('.scene-card').forEach((c) => {
+        c.classList.toggle('active', c.dataset.scene === code);
+    });
+    renderRecommended();
+    updateRecommendedLabel();
+}
+
+// ============ RENDER MASTERS ============
+function masterByName(name) {
+    return STATE.data.masters.find((m) => m.name === name);
+}
+
+function renderRecommended() {
+    const grid = document.getElementById('recommended-grid');
+    grid.innerHTML = '';
+    const rec = STATE.data.scene_recommendations[STATE.selectedScene];
+    if (!rec) return;
+    const list = [
+        { name: rec.primary, tag: 'primary' },
+        ...rec.secondary.map((n) => ({ name: n, tag: 'secondary' })),
+        ...(rec.tertiary || []).map((n) => ({ name: n, tag: 'tertiary' })),
+    ];
+    list.forEach((item) => {
+        const m = masterByName(item.name);
+        if (!m) return;
+        grid.appendChild(makeMasterCard(m, item.tag === 'primary'));
+    });
+}
+
+function renderAllMasters() {
+    const grid = document.getElementById('all-grid');
+    grid.innerHTML = '';
+    STATE.data.masters.forEach((m) => {
+        grid.appendChild(makeMasterCard(m, false));
+    });
+}
+
+function makeMasterCard(master, isPrimary) {
+    const card = document.createElement('div');
+    card.className = 'master-card' + (isPrimary ? ' primary' : '');
+    card.dataset.master = master.name;
+    const ready = master.demo_ready === true;
+
+    const imgHTML = (src, label) => `
+        <div>
+            <img src="../${src}" alt="${label}"
+                 onerror="this.style.display='none';this.parentElement.innerHTML='<div class=&quot;placeholder&quot;>${label}</div>';" />
+        </div>
+    `;
+
+    const imagesSection = ready
+        ? `<div class="master-images">
+              ${imgHTML(master.image_paths.cover, 'COVER')}
+           </div>
+           <div class="master-images-zoom" aria-hidden="true">
+              <img src="../${master.image_paths.cover}" alt="" />
+           </div>`
+        : `<div class="master-images pending">
+              <div class="pending-emoji">📷</div>
+              <div class="pending-text">PREVIEW PENDING</div>
+              <div class="pending-tip">demo 预览待生成<br>选定仍可正常使用</div>
+           </div>`;
+
+    const previewBtn = ready
+        ? `<button class="btn" data-action="preview">看大图</button>`
+        : `<button class="btn" disabled data-action="preview">看大图<span class="btn-label-pending">待生成</span></button>`;
+
+    const statusBadge = ready
+        ? `<div class="demo-status ready">● READY</div>`
+        : `<div class="demo-status">○ PENDING</div>`;
+
+    card.innerHTML = `
+        ${statusBadge}
+        ${imagesSection}
+        <div class="master-body">
+            <div class="master-display-name">${master.display_name}</div>
+            <div class="master-oneliner">${master.one_liner}</div>
+            <div class="master-tags">${master.vibe_tags.map((t) => `<span>${t}</span>`).join('')}</div>
+            <div class="master-action">
+                <button class="btn primary" data-action="select">就用这个</button>
+                ${previewBtn}
+            </div>
+        </div>
+    `;
+
+    card.querySelector('[data-action="select"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectMaster(master);
+    });
+    const previewEl = card.querySelector('[data-action="preview"]');
+    if (previewEl && !previewEl.disabled) {
+        previewEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openPreview(master);
+        });
+    }
+    return card;
+}
+
+function selectMaster(master) {
+    STATE.selectedMaster = master;
+    document.getElementById('selected-name').textContent = master.display_name;
+    document.getElementById('selected-oneliner').textContent = master.one_liner;
+    document.getElementById('submit-bar').classList.add('show');
+    const msg = master.demo_ready
+        ? `已选定「${master.display_name}」 · 点右下「用这个风格」确认`
+        : `已选定「${master.display_name}」 · 预览图还没生成，但选定后仍能正常用`;
+    showToast(msg);
+}
+
+function openPreview(master) {
+    if (!master.demo_ready) {
+        showToast(`「${master.display_name}」demo 还没生成。运行：python scripts/generate_demos.py --master ${master.name}`);
+        return;
+    }
+    const fullPath = `../demo-decks/${master.name}/full.html`;
+    window.open(fullPath, '_blank');
+}
+
+function updateRecommendedLabel() {
+    const rec = STATE.data.scene_recommendations[STATE.selectedScene];
+    if (rec) {
+        const m = masterByName(rec.primary);
+        if (m) document.getElementById('recommended').textContent = m.display_name;
+    }
+}
+
+// ============ EXPAND TOGGLE ============
+document.getElementById('expand-toggle').addEventListener('click', () => {
+    const zone = document.getElementById('all-masters-zone');
+    zone.classList.toggle('hidden');
+    const toggle = document.getElementById('expand-toggle');
+    toggle.textContent = zone.classList.contains('hidden')
+        ? '查看全部 14 个大师风格'
+        : '收起';
+});
+
+// ============ TOAST ============
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============ SUBMIT ============
+document.getElementById('confirm-btn').addEventListener('click', async () => {
+    if (!STATE.selectedMaster) return;
+    const payload = {
+        master: STATE.selectedMaster.name,
+        master_file: STATE.selectedMaster.master_file,
+        display_name: STATE.selectedMaster.display_name,
+        scene: STATE.selectedScene,
+        china_mutex: STATE.selectedMaster.china_mutex || false,
+        mutex_option: STATE.selectedMaster.mutex_option || null,
+        timestamp: new Date().toISOString(),
+    };
+    try {
+        const resp = await fetch('/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (resp.ok) {
+            showToast('已传回 Claude · 可以关闭此页面回到对话');
+            document.getElementById('confirm-btn').textContent = '✓ 已选定，回到对话';
+            document.getElementById('confirm-btn').disabled = true;
+        } else {
+            showToast('传回失败 · 请把选择手动告诉 Claude');
+        }
+    } catch (e) {
+        showToast('本地服务未启动 · 把选择手动告诉 Claude：' + STATE.selectedMaster.name);
+    }
+});
+
+// ============ INIT ============
+loadData();
+</script>
+</body>
+</html>

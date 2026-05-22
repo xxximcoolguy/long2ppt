@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>求知若饥 · Sagmeister 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Permanent+Marker&family=Gochi+Hand&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #2A1A0E);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #FAF3E6);
+    color: var(--stage-ink, #1A1A1A);
+    font-family: var(--type-body, sans-serif);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad, 72px);
+    opacity: 0; visibility: hidden;
+    transform: scale(0.96) rotate(-1.2deg);
+    transition:
+        opacity 0.5s cubic-bezier(0.34, 1.4, 0.5, 1),
+        transform 0.5s cubic-bezier(0.34, 1.4, 0.5, 1),
+        visibility 0s linear 0.5s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: scale(1) rotate(0deg);
+    transition:
+        opacity 0.6s cubic-bezier(0.34, 1.4, 0.5, 1) 0.04s,
+        transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1) 0.04s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: scale(0.96) rotate(1.6deg); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: var(--stage-gap, 26px);
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Sagmeister 配色与字号系统 ==============
+   §3 配色：高饱和 + 粉/肤色作软垫。拒绝企业灰、莫兰迪。
+   每页 2-3 色，至少 1 高饱和 + 1 粉/肤。 */
+:root {
+    font-size: 14px;
+    --stage-void: #2A1A0E;     /* 暗暖咖啡，舞台外圈 */
+    --stage-bg: #FAF3E6;       /* 暖纸白 §3 --paper #FAF7F2 调暖 */
+
+    --rose:   #E91E63;         /* §3 玫红 */
+    --orange: #FF6B35;         /* §3 暖橙 */
+    --banana: #FFD23F;         /* §3 香蕉黄 */
+    --blood:  #D62828;         /* §3 血红 */
+    --skin:   #FFC8B4;         /* §3 粉肤 — 软垫色 */
+    --grass:  #4CAF50;         /* §3 草绿 */
+    --cobalt: #1E40AF;         /* §3 钴蓝 */
+    --ink:    #1A1A1A;         /* §3 墨黑 */
+
+    --stage-ink: #1A1A1A;
+
+    /* §2/§3 字体：手写体为主力，Times Roman 反讽用 */
+    --type-marker: 'Permanent Marker', 'Caveat', cursive;          /* 招贴大字 */
+    --type-hand:   'Caveat', 'Gochi Hand', cursive;                /* 手写流体 */
+    --type-hand-en:'Gochi Hand', 'Caveat', cursive;
+    --type-cn-brush:'Ma Shan Zheng', 'KaiTi', serif;               /* 中文书法手写 */
+    --type-cn-grass:'Zhi Mang Xing', 'Ma Shan Zheng', cursive;     /* 中文狂草手写 */
+    --type-irony: 'Noto Serif SC', 'Times New Roman', 'SimSun', serif; /* 反讽学院衬线 */
+    --type-body:  'Noto Sans SC', 'PingFang SC', sans-serif;
+
+    /* 字号 — TED 演讲式大字：主标题撑满 40-60% 版面 */
+    --type-mega:    13rem;
+    --type-display: 8.4rem;
+    --type-h1:      5.4rem;
+    --type-h2:      3.4rem;
+    --type-h3:      2.0rem;
+    --type-body-sz: 1.18rem;
+    --type-small:   1.0rem;
+    --type-tag:     1.05rem;
+
+    --frame-pad: 72px;
+    --stage-gap: 26px;
+}
+
+/* ============== Runner & Cue ============== */
+/* 手写便签感的页脚，故意倾斜 */
+.runner {
+    position: absolute;
+    left: var(--frame-pad); right: var(--frame-pad);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--type-hand-en);
+    font-size: var(--type-tag);
+    color: var(--ink);
+    z-index: 5;
+}
+.runner--bottom { bottom: 30px; }
+.runner .runner-mark {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    transform: rotate(-2deg);
+}
+.runner .runner-mark::before {
+    content: '✶'; color: var(--rose); font-size: 1.1em;
+}
+.runner .latin { transform: rotate(1.5deg); }
+
+/* 手写小标签：彩笔下划线 */
+.cue {
+    display: inline-block;
+    font-family: var(--type-hand);
+    font-size: var(--type-h3);
+    color: var(--blood);
+    transform: rotate(-2.5deg);
+    align-self: flex-start;
+    padding: 0 0.2em 0.05em;
+    background:
+        linear-gradient(var(--banana), var(--banana)) 0 88% / 100% 0.42em no-repeat;
+}
+
+/* ============== Unfold animation ==============
+   §4 接受抖动 — 入场带轻微旋转，不是 Rams 的整齐位移 */
+.unfold {
+    opacity: 0; transform: translateY(22px) rotate(-1.5deg);
+    transition:
+        opacity 0.55s cubic-bezier(0.34, 1.5, 0.5, 1),
+        transform 0.55s cubic-bezier(0.34, 1.5, 0.5, 1);
+}
+.frame[data-state="active"] .unfold { opacity: 1; transform: translateY(0) rotate(0deg); }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.08s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.18s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.28s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.38s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 0.48s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 0.58s; }
+
+/* ============== Rail ==============
+   §4 反直角：导航点用手绘小圆，当前点是高饱和实心 */
+.rail {
+    position: fixed; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 13px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: transparent;
+    border: 2px solid var(--orange); padding: 0; cursor: pointer;
+    transition: all 0.25s ease;
+}
+.rail .rail-pip:nth-child(even) { transform: rotate(8deg); }
+.rail .rail-pip:hover { background: var(--skin); }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--rose);
+    border-color: var(--rose);
+    transform: scale(1.5) rotate(-12deg);
+}
+.hotkey-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%) rotate(-1.5deg);
+    z-index: 90;
+    font-family: var(--type-hand-en);
+    font-size: 15px;
+    color: var(--banana);
+    pointer-events: none;
+}
+
+/* ============== 通用强调 ============== */
+.ink-rose { color: var(--rose); }
+.ink-orange { color: var(--orange); }
+.ink-blood { color: var(--blood); }
+.ink-banana { color: var(--banana); }
+.ink-grass { color: var(--grass); }
+.ink-cobalt { color: var(--cobalt); }
+/* 高亮：彩笔涂抹的字（§2 物质媒介感） */
+.swab {
+    background: var(--banana);
+    padding: 0 0.12em;
+    box-decoration-break: clone;
+    transform: rotate(-1deg); display: inline-block;
+}
+.swab-rose { background: var(--skin); }
+
+/* ============== Layout: front-frame 封面 ============== */
+/* 手作大字定调 — 主标题撑满版面，压在暖橙肤色块上 */
+.front-frame { background: var(--orange); padding: 0; }
+.front-frame .stage {
+    justify-content: center; align-items: center;
+    gap: 0; text-align: center;
+}
+.cover-kicker {
+    font-family: var(--type-hand-en);
+    font-size: 1.7rem; color: var(--ink);
+    transform: rotate(-3deg);
+    margin-bottom: 0.6em;
+}
+.cover-title {
+    font-family: var(--type-cn-brush);
+    font-size: var(--type-mega);
+    line-height: 0.92;
+    color: var(--stage-bg);
+    /* 手作描边阴影 — 不是 drop-shadow，是实心错位描边（§4 允许，反 box-shadow） */
+    text-shadow:
+        5px 5px 0 var(--blood),
+        10px 10px 0 var(--ink);
+    transform: rotate(-2deg);
+    letter-spacing: 0.04em;
+}
+.cover-title .flip {
+    display: inline-block; transform: rotate(7deg) translateY(-0.06em);
+    color: var(--banana);
+    text-shadow: 5px 5px 0 var(--ink);
+}
+.cover-sub {
+    font-family: var(--type-hand);
+    font-size: 2.4rem; color: var(--ink);
+    margin-top: 0.7em;
+    transform: rotate(1.5deg);
+}
+.cover-foot {
+    font-family: var(--type-hand-en);
+    font-size: 1.3rem; color: var(--stage-bg);
+    margin-top: 1.6em;
+    transform: rotate(-2deg);
+}
+.front-frame .runner { color: var(--stage-bg); }
+.front-frame .runner .runner-mark::before { color: var(--banana); }
+
+/* ============== Layout: chapter-plate 章节扉 ============== */
+/* PART 01 — 巨型手写数字 + 中文书法大字 */
+.chapter-plate { background: var(--rose); }
+.chapter-plate .stage { justify-content: center; align-items: flex-start; gap: 0; }
+.chapter-num {
+    font-family: var(--type-marker);
+    font-size: 9.5rem; line-height: 0.85;
+    color: var(--banana);
+    transform: rotate(-4deg);
+    text-shadow: 4px 4px 0 var(--ink);
+    margin-left: -0.06em;
+}
+.chapter-num .latin { font-family: var(--type-marker); }
+.chapter-title {
+    font-family: var(--type-cn-brush);
+    font-size: var(--type-display);
+    line-height: 0.98;
+    color: var(--stage-bg);
+    transform: rotate(-1.5deg);
+    margin: 0.15em 0 0;
+    letter-spacing: 0.06em;
+}
+.chapter-en {
+    font-family: var(--type-hand-en);
+    font-size: 2.1rem; color: var(--skin);
+    transform: rotate(2deg);
+    margin-top: 0.5em;
+}
+.chapter-lead {
+    font-family: var(--type-irony);   /* §3 Times Roman 反讽 — 严肃叙事故意用学院衬线 */
+    font-size: var(--type-body-sz);
+    color: var(--stage-bg);
+    line-height: 1.85;
+    max-width: 46ch;
+    margin-top: 1.4em;
+    padding-left: 20px;
+    border-left: 5px solid var(--banana);
+    font-style: italic;
+}
+
+/* ============== Layout: 正文主体 frame-3 ============== */
+/* 三段叙事拼贴 — 每张卡片不同色、不同旋转，接缝可见（§2 拼贴感） */
+.story-body .stage { justify-content: center; gap: 24px; }
+.story-lede {
+    font-family: var(--type-cn-grass);
+    font-size: var(--type-h1);
+    line-height: 1.05;
+    color: var(--ink);
+    transform: rotate(-1.5deg);
+    max-width: 20ch;
+}
+.collage {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 26px; margin-top: 14px;
+}
+.scrap {
+    padding: 26px 22px 24px;
+    position: relative;
+}
+.scrap-1 { background: var(--banana); transform: rotate(-2.5deg); }
+.scrap-2 { background: var(--skin);   transform: rotate(1.8deg); margin-top: 22px; }
+.scrap-3 { background: var(--grass);  transform: rotate(-1.2deg); }
+/* 图钉 — 物质媒介感（§2），不是矢量净化的圆点 */
+.scrap::before {
+    content: '●';
+    position: absolute; top: -9px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem; color: var(--blood);
+}
+.scrap-num {
+    font-family: var(--type-marker);
+    font-size: 3.4rem; line-height: 1;
+    color: var(--ink);
+    transform: rotate(-5deg);
+    display: inline-block;
+}
+.scrap-2 .scrap-num { color: var(--blood); }
+.scrap-3 .scrap-num { color: var(--stage-bg); }
+.scrap-name {
+    font-family: var(--type-cn-brush);
+    font-size: 1.9rem; color: var(--ink);
+    margin: 0.3em 0 0.4em;
+}
+.scrap-3 .scrap-name { color: var(--stage-bg); }
+.scrap-desc {
+    font-family: var(--type-irony);  /* 反讽衬线注释 */
+    font-size: 1.02rem; color: var(--ink);
+    line-height: 1.7;
+}
+.scrap-3 .scrap-desc { color: #0E2A12; }
+.scrap-en {
+    font-family: var(--type-hand-en);
+    font-size: 1.15rem; color: var(--blood);
+    margin-top: 0.6em; display: block;
+    transform: rotate(-1.5deg);
+}
+.scrap-3 .scrap-en { color: var(--banana); }
+
+/* ============== Layout: 金句 frame-4 coda 前 ============== */
+/* 手写金句撑满整版 — TED 演讲式大字 */
+.aphorism { background: var(--cobalt); }
+.aphorism .stage { justify-content: center; align-items: flex-start; gap: 18px; }
+.aphorism-mark {
+    font-family: var(--type-hand-en);
+    font-size: 1.7rem; color: var(--banana);
+    transform: rotate(-3deg);
+}
+.aphorism-quote {
+    font-family: var(--type-cn-grass);
+    font-size: 7.2rem;
+    line-height: 1.04;
+    color: var(--stage-bg);
+    transform: rotate(-1.5deg);
+}
+.aphorism-quote .lift {
+    display: inline-block;
+    color: var(--banana);
+    transform: rotate(4deg) scale(1.06);
+}
+.aphorism-en {
+    font-family: var(--type-marker);
+    font-size: 2.9rem;
+    color: var(--skin);
+    transform: rotate(1.8deg);
+    margin-top: 0.5em;
+    line-height: 1.1;
+}
+.aphorism-attr {
+    font-family: var(--type-hand);
+    font-size: 1.7rem; color: var(--banana);
+    margin-top: 0.4em;
+    transform: rotate(-2deg);
+}
+.aphorism-attr::before { content: '— '; }
+
+/* ============== Layout: 终章 coda frame-5 ============== */
+.coda { background: var(--banana); }
+.coda .stage { justify-content: center; align-items: center; text-align: center; gap: 8px; }
+.coda-pre {
+    font-family: var(--type-hand-en);
+    font-size: 1.5rem; color: var(--blood);
+    transform: rotate(-2.5deg);
+    margin-bottom: 0.4em;
+}
+.coda-headline {
+    font-family: var(--type-cn-brush);
+    font-size: var(--type-mega);
+    line-height: 0.9;
+    color: var(--ink);
+    transform: rotate(-2deg);
+    text-shadow: 5px 5px 0 var(--orange);
+    letter-spacing: 0.05em;
+}
+.coda-headline .flip {
+    display: inline-block;
+    color: var(--blood);
+    transform: rotate(8deg);
+    text-shadow: 5px 5px 0 var(--stage-bg);
+}
+.coda-post {
+    font-family: var(--type-marker);
+    font-size: 2.5rem;
+    color: var(--blood);
+    margin-top: 0.6em;
+    transform: rotate(1.5deg);
+    line-height: 1.15;
+}
+.coda-sign {
+    font-family: var(--type-hand-en);
+    font-size: 1.3rem; color: var(--ink);
+    margin-top: 1.6em;
+    transform: rotate(-2deg);
+}
+.coda .runner { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="求知若饥 虚心若愚 · 乔布斯斯坦福演讲">
+
+<!-- 1. 封面 front-frame -->
+<section class="frame front-frame" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-kicker unfold">Stanford Commencement · 2005</div>
+        <h1 class="cover-title unfold">求知若<span class="flip">饥</span></h1>
+        <p class="cover-sub unfold">三个故事，关于人生的点、爱与死亡</p>
+        <div class="cover-foot unfold">— 一场把每一天当最后一天来过的演讲 —</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">COVER</span><span class="latin">01 / 05</span></div>
+</section>
+
+<!-- 2. 章节扉 chapter-plate · PART 01 -->
+<section class="frame chapter-plate" data-title="PART 01 三个故事">
+    <div class="stage">
+        <div class="chapter-num unfold"><span class="latin">01</span></div>
+        <h2 class="chapter-title unfold">就讲三个故事</h2>
+        <div class="chapter-en unfold">Just three stories. No big deal.</div>
+        <p class="chapter-lead unfold">「今天，我想给你们讲我人生中的三个故事。就这些，不是什么大事——把生命中的点点滴滴连接起来，爱与失去，还有死亡。」</p>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">CHAPTER 01</span><span class="latin">02 / 05</span></div>
+</section>
+
+<!-- 3. 正文主体 — 三段叙事拼贴 -->
+<section class="frame story-body" data-title="三段叙事">
+    <div class="stage">
+        <div class="cue unfold">三个故事 · 一个人生</div>
+        <h2 class="story-lede unfold">点滴会在<span class="swab">回头</span>时串起来</h2>
+        <div class="collage">
+            <article class="scrap scrap-1 unfold">
+                <span class="scrap-num">壹</span>
+                <h3 class="scrap-name">连点成线</h3>
+                <p class="scrap-desc">退学、睡地板、捡可乐瓶换饭钱。凭好奇心撞上的东西，后来都变得无价。</p>
+                <span class="scrap-en">Connecting the Dots</span>
+            </article>
+            <article class="scrap scrap-2 unfold">
+                <span class="scrap-num">贰</span>
+                <h3 class="scrap-name">爱与失去</h3>
+                <p class="scrap-desc">被自己创办的公司开除。成功的沉重，被重新做新手的轻盈取代。</p>
+                <span class="scrap-en">Love &amp; Loss</span>
+            </article>
+            <article class="scrap scrap-3 unfold">
+                <span class="scrap-num">叁</span>
+                <h3 class="scrap-name">关于死亡</h3>
+                <p class="scrap-desc">每天对镜自问：若今天是最后一天，我还愿做今天的事吗？</p>
+                <span class="scrap-en">On Death</span>
+            </article>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">THREE STORIES</span><span class="latin">03 / 05</span></div>
+</section>
+
+<!-- 4. 手写金句 -->
+<section class="frame aphorism" data-title="金句">
+    <div class="stage">
+        <div class="aphorism-mark unfold">他对着 17 岁的自己说 —</div>
+        <blockquote class="aphorism-quote unfold">不要为<span class="lift">别人</span><br>而活</blockquote>
+        <div class="aphorism-en unfold">Don't waste it living<br>someone else's life</div>
+        <div class="aphorism-attr unfold">Steve Jobs, 2005</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">EPIGRAPH</span><span class="latin">04 / 05</span></div>
+</section>
+
+<!-- 5. 终章 coda -->
+<section class="frame coda" data-title="终章">
+    <div class="stage">
+        <div class="coda-pre unfold">The Whole Earth Catalog · 封底告别语</div>
+        <h1 class="coda-headline unfold">虚心若<span class="flip">愚</span></h1>
+        <p class="coda-post unfold">Stay Hungry. Stay Foolish.</p>
+        <div class="coda-sign unfold">— A LONGTEXT-TO-SLIDES DEMO · SAGMEISTER —</div>
+    </div>
+    <div class="runner runner--bottom"><span class="runner-mark">END</span><span class="latin">05 / 05</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  SPACE  ·  CLICK  ·  F</div>
+
+<script>
+/* ============== deck.js 内联 ============== */
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 450);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>

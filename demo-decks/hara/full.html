@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>一只茶杯盛人间 · Hara 风 demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Noto+Sans+SC:wght@200;300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ============== deck.css 内联 · Hara 覆盖版 ============== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--stage-void, #f5f3ee);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "palt" 1;
+}
+.marquee { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.deck {
+    position: relative; width: 1280px; height: 720px;
+    transform: scale(var(--fit-scale, 1));
+    transform-origin: center center;
+    background: var(--stage-bg, #fafaf7);
+    color: var(--stage-ink, #2a2926);
+    font-family: var(--type-body);
+    overflow: hidden;
+}
+.frame {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: var(--frame-pad);
+    opacity: 0; visibility: hidden;
+    transform: translateY(8px);
+    transition:
+        opacity 0.9s cubic-bezier(0.25, 0.8, 0.3, 1),
+        transform 0.9s cubic-bezier(0.25, 0.8, 0.3, 1),
+        visibility 0s linear 0.9s;
+    pointer-events: none;
+}
+.frame[data-state="active"] {
+    opacity: 1; visibility: visible; transform: translateY(0);
+    transition:
+        opacity 1.1s cubic-bezier(0.25, 0.8, 0.3, 1) 0.05s,
+        transform 1.1s cubic-bezier(0.25, 0.8, 0.3, 1) 0.05s,
+        visibility 0s linear 0s;
+    pointer-events: auto;
+}
+.frame[data-state="past"] { opacity: 0; transform: translateY(-8px); }
+.stage {
+    flex: 1; display: flex; flex-direction: column;
+    max-width: 100%; max-height: 100%;
+    overflow: hidden; position: relative; z-index: 2;
+}
+
+/* ============== Hara 配色与字号系统 ============== */
+:root {
+    font-size: 14px;
+
+    /* 暖白绝不纯白，墨黑绝不纯黑 */
+    --stage-void: #f5f3ee;
+    --stage-bg: #fafaf7;       /* 主暖白 */
+    --stage-paper: #1a1a1a;    /* 墨黑非纯黑 */
+    --stage-ink: #2a2926;
+    --stage-faint: #8a8782;    /* 中性灰 */
+    --stage-mist: #c8c5be;     /* 浅灰，几乎察觉不到 */
+    --stage-veil: #ecebe6;     /* 第二层白 */
+
+    /* 唯一点缀：极淡灰蓝（仿《茶之书》宣纸上的淡墨晕），整套出现 ≤ 1 次/页 */
+    --accent-tea: #5a6f6a;     /* 茶釉青绿，极低饱和 */
+
+    --type-body: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --type-display-cn: 'Noto Serif SC', 'Songti SC', 'STSong', serif;  /* 明朝/宋体 */
+    --type-latin: 'Cormorant Garamond', 'Garamond', 'Times New Roman', serif;
+    --type-latin-sans: 'Noto Sans SC', sans-serif;
+
+    /* Hara 字号阶梯：温和递进 1.0 / 1.3 / 1.6 / 2.4 —— 绝不超大 */
+    --type-display: 2.6rem;    /* ≈ 36pt 封面标题，已是上限 */
+    --type-h1: 2.0rem;         /* ≈ 28pt 章题 */
+    --type-h2: 1.5rem;         /* ≈ 21pt 副题/lede */
+    --type-h3: 1.15rem;        /* ≈ 16pt */
+    --type-body-sz: 1.0rem;    /* ≈ 14pt 正文 */
+    --type-small: 0.82rem;     /* ≈ 11.5pt 注释 */
+    --type-tag: 0.72rem;       /* ≈ 10pt 西文小标 */
+
+    /* 极宽行距，呼吸感 */
+    --leading-tight: 1.45;
+    --leading-snug: 1.7;
+    --leading-cozy: 2.0;
+    --leading-roomy: 2.2;
+
+    /* 中文字距宽松 0.05-0.1em */
+    --track-han: 0.08em;
+    --track-han-display: 0.06em;
+    --track-latin: 0.02em;
+    --track-tag: 0.32em;       /* 西文小标超宽间距 */
+
+    /* 大边距：Hara 12vh 14vw 折算 1280×720 ≈ 90×180 */
+    --frame-pad: 92px 178px;
+}
+
+.frame {
+    letter-spacing: var(--track-han);
+    font-weight: 300;
+}
+.frame :lang(en), .frame .latin {
+    letter-spacing: var(--track-latin);
+    font-family: var(--type-latin);
+}
+.frame .tag {
+    font-family: var(--type-latin-sans);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 300;
+    font-size: var(--type-tag);
+    color: var(--stage-faint);
+}
+
+/* ============== Runner & Rail（极度克制）============== */
+.runner {
+    position: absolute;
+    left: 92px; right: 92px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    color: var(--stage-mist);
+    letter-spacing: var(--track-tag);
+    z-index: 5;
+    font-weight: 300;
+    text-transform: uppercase;
+}
+.runner--bottom { bottom: 36px; }
+.runner--top { top: 36px; }
+
+.rail {
+    position: fixed; right: 28px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 14px;
+    z-index: 100;
+}
+.rail .rail-pip {
+    width: 4px; height: 4px;
+    background: var(--stage-mist);
+    border: none; padding: 0; cursor: pointer;
+    border-radius: 50%;
+    transition: opacity 0.4s, background 0.4s, transform 0.4s;
+}
+.rail .rail-pip:hover { background: var(--stage-faint); }
+.rail .rail-pip[aria-current="true"] {
+    background: var(--stage-paper);
+    transform: scale(1.6);
+}
+.hotkey-hint {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 90;
+    font-family: var(--type-latin-sans);
+    font-size: 10px;
+    color: var(--stage-mist); opacity: 0.5;
+    letter-spacing: 0.3em;
+    pointer-events: none;
+    font-weight: 300;
+}
+
+.accent-tea { color: var(--accent-tea); }
+
+/* ============== Unfold（极慢 · 一层一层显现）============== */
+.unfold {
+    opacity: 0; transform: translateY(8px);
+    transition:
+        opacity 1.0s cubic-bezier(0.25, 0.8, 0.3, 1),
+        transform 1.0s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+.frame[data-state="active"] .unfold { opacity: 1; transform: translateY(0); }
+.frame[data-state="active"] .unfold:nth-child(1) { transition-delay: 0.15s; }
+.frame[data-state="active"] .unfold:nth-child(2) { transition-delay: 0.40s; }
+.frame[data-state="active"] .unfold:nth-child(3) { transition-delay: 0.65s; }
+.frame[data-state="active"] .unfold:nth-child(4) { transition-delay: 0.90s; }
+.frame[data-state="active"] .unfold:nth-child(5) { transition-delay: 1.15s; }
+.frame[data-state="active"] .unfold:nth-child(6) { transition-delay: 1.40s; }
+
+/* ============== Layout: cover · 单焦点偏左偏下 ============== */
+.cover .stage {
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.cover-tag {
+    margin-top: 0;
+}
+.cover-core {
+    /* Hara: 主元素在视觉黄金分割偏下 55-62% */
+    margin-top: 20%;
+    max-width: 60%;
+}
+.cover-title {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-display);
+    line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    letter-spacing: var(--track-han-display);
+    margin-bottom: 2.4em;
+}
+.cover-title .accent-tea {
+    color: var(--accent-tea);
+    font-weight: 400;
+}
+.cover-sub {
+    font-family: var(--type-body);
+    font-weight: 300;
+    font-size: var(--type-h3);
+    color: var(--stage-faint);
+    line-height: var(--leading-roomy);
+    max-width: 28ch;
+    letter-spacing: var(--track-han);
+}
+.cover-sub .latin {
+    display: block;
+    font-style: italic;
+    color: var(--stage-mist);
+    margin-top: 0.6em;
+    font-size: 0.9em;
+}
+
+/* ============== Layout: epigraph · 引语扉 中英对照 ============== */
+.epigraph .stage {
+    justify-content: center;
+    align-items: flex-start;
+    padding-left: 4%;
+}
+.epigraph-en {
+    font-family: var(--type-latin);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.9rem;
+    line-height: 1.6;
+    color: var(--stage-paper);
+    max-width: 22ch;
+    margin-bottom: 2.4em;
+    letter-spacing: 0.01em;
+}
+.epigraph-cn {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h3);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    max-width: 26ch;
+    letter-spacing: var(--track-han);
+}
+.epigraph-attr {
+    margin-top: 3.6em;
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    color: var(--stage-mist);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 300;
+}
+.epigraph-attr::before {
+    content: '— ';
+}
+
+/* ============== Layout: chapter · 章节扉 偏下 ============== */
+.chapter .stage {
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-bottom: 8%;
+}
+.chapter-num {
+    font-family: var(--type-latin-sans);
+    color: var(--stage-mist);
+    font-size: var(--type-tag);
+    font-weight: 300;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    margin-bottom: 3em;
+}
+.chapter-title {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h1);
+    line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    margin-bottom: 1.4em;
+    letter-spacing: var(--track-han-display);
+}
+.chapter-en {
+    font-family: var(--type-latin);
+    font-style: italic;
+    color: var(--stage-faint);
+    font-size: var(--type-h3);
+    font-weight: 300;
+    margin-bottom: 2.2em;
+    letter-spacing: 0.02em;
+}
+.chapter-lead {
+    font-family: var(--type-body);
+    font-size: var(--type-body-sz);
+    color: var(--stage-ink);
+    max-width: 32ch;
+    line-height: var(--leading-roomy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+}
+
+/* ============== Layout: evolution · 时间轴（4 节点，极简）============== */
+.evolution .stage {
+    justify-content: center;
+    align-items: flex-start;
+    gap: 4em;
+}
+.section-label {
+    font-family: var(--type-latin-sans);
+    color: var(--stage-mist);
+    font-size: var(--type-tag);
+    font-weight: 300;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+.section-lede {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h2);
+    color: var(--stage-paper);
+    line-height: var(--leading-snug);
+    max-width: 30ch;
+    letter-spacing: var(--track-han-display);
+}
+.timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3em;
+    margin-top: 1em;
+    width: 100%;
+}
+.timeline-node {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4em;
+}
+.timeline-era {
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    color: var(--accent-tea);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 300;
+}
+.timeline-name {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: 1.4rem;
+    color: var(--stage-paper);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--track-han-display);
+}
+.timeline-note {
+    font-family: var(--type-body);
+    font-size: var(--type-small);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+}
+
+/* ============== Layout: bilingual · 中英对照双栏 ============== */
+.bilingual .stage {
+    justify-content: center;
+    gap: 3em;
+}
+.bilingual-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6em;
+    margin-top: 1em;
+}
+.bilingual-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2em;
+}
+.bilingual-col-label {
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    color: var(--stage-mist);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 300;
+    margin-bottom: 0.8em;
+}
+.bilingual-en {
+    font-family: var(--type-latin);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--stage-paper);
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+}
+.bilingual-cn {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-body-sz);
+    color: var(--stage-ink);
+    line-height: var(--leading-roomy);
+    letter-spacing: var(--track-han);
+}
+
+/* ============== Layout: aphorism · 单句金句 偏下偏左 ============== */
+.aphorism .stage {
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-bottom: 12%;
+    max-width: 70%;
+}
+.aphorism-mark {
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    color: var(--stage-mist);
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    font-weight: 300;
+    margin-bottom: 3em;
+}
+.aphorism-cn {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h1);
+    line-height: var(--leading-tight);
+    color: var(--stage-paper);
+    letter-spacing: var(--track-han-display);
+    max-width: 18ch;
+    margin-bottom: 2em;
+}
+.aphorism-cn .accent-tea {
+    color: var(--accent-tea);
+    font-weight: 400;
+}
+.aphorism-en {
+    font-family: var(--type-latin);
+    font-style: italic;
+    font-size: var(--type-h3);
+    color: var(--stage-faint);
+    line-height: 1.7;
+    max-width: 32ch;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+}
+
+/* ============== Layout: trinity · 三栏极简 ============== */
+.trinity .stage {
+    justify-content: center;
+    gap: 4em;
+}
+.trinity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5em;
+    margin-top: 2em;
+}
+.trinity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6em;
+}
+.trinity-glyph {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: 2.2rem;
+    color: var(--stage-paper);
+    line-height: 1;
+    letter-spacing: 0.05em;
+}
+.trinity-en {
+    font-family: var(--type-latin);
+    font-style: italic;
+    font-size: var(--type-h3);
+    color: var(--accent-tea);
+    line-height: 1.4;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+}
+.trinity-note {
+    font-family: var(--type-body);
+    font-size: var(--type-small);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+    max-width: 16ch;
+}
+
+/* ============== Layout: schools · 三朝对照（更密一些）============== */
+.schools .stage {
+    justify-content: center;
+    gap: 3em;
+}
+.schools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5em;
+    margin-top: 1.4em;
+}
+.school {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2em;
+}
+.school-era {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: 1.8rem;
+    color: var(--stage-paper);
+    line-height: 1;
+    letter-spacing: var(--track-han-display);
+}
+.school-temper {
+    font-family: var(--type-latin);
+    font-style: italic;
+    font-size: var(--type-h3);
+    color: var(--accent-tea);
+    font-weight: 300;
+    line-height: 1.4;
+}
+.school-method {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-body-sz);
+    color: var(--stage-ink);
+    line-height: var(--leading-cozy);
+    letter-spacing: var(--track-han);
+    margin-top: 0.6em;
+}
+.school-note {
+    font-family: var(--type-body);
+    font-size: var(--type-small);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+    max-width: 18ch;
+    margin-top: 0.6em;
+}
+
+/* ============== Layout: footnote · 注脚式（陆羽《茶经》）============== */
+.footnote .stage {
+    justify-content: center;
+    align-items: flex-start;
+    gap: 3.5em;
+    max-width: 50%;
+}
+.footnote-anchor {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h2);
+    color: var(--stage-paper);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--track-han-display);
+}
+.footnote-body {
+    font-family: var(--type-body);
+    font-size: var(--type-body-sz);
+    color: var(--stage-ink);
+    line-height: var(--leading-roomy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+    max-width: 32ch;
+}
+.footnote-toc {
+    font-family: var(--type-body);
+    font-size: var(--type-small);
+    color: var(--stage-faint);
+    line-height: var(--leading-cozy);
+    font-weight: 300;
+    letter-spacing: var(--track-han);
+    max-width: 36ch;
+}
+.footnote-toc-item {
+    display: flex;
+    gap: 1.4em;
+    padding: 0.4em 0;
+}
+.footnote-toc-num {
+    color: var(--stage-mist);
+    font-family: var(--type-latin-sans);
+    font-size: var(--type-tag);
+    letter-spacing: var(--track-tag);
+    min-width: 3em;
+    padding-top: 0.3em;
+}
+
+/* ============== Layout: coda · 终章 极致单焦点 ============== */
+.coda .stage {
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-bottom: 10%;
+    padding-left: 4%;
+}
+.coda-pre {
+    font-family: var(--type-latin-sans);
+    color: var(--stage-mist);
+    font-size: var(--type-tag);
+    font-weight: 300;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+    margin-bottom: 4em;
+}
+.coda-cn {
+    font-family: var(--type-display-cn);
+    font-weight: 300;
+    font-size: var(--type-h1);
+    line-height: var(--leading-snug);
+    color: var(--stage-paper);
+    letter-spacing: var(--track-han-display);
+    margin-bottom: 1.8em;
+    max-width: 14ch;
+}
+.coda-cn .accent-tea {
+    color: var(--accent-tea);
+    font-weight: 400;
+}
+.coda-en {
+    font-family: var(--type-latin);
+    font-style: italic;
+    font-size: 1.4rem;
+    color: var(--stage-faint);
+    line-height: 1.6;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    max-width: 24ch;
+}
+.coda-sign {
+    margin-top: 4em;
+    font-family: var(--type-latin-sans);
+    color: var(--stage-mist);
+    font-size: var(--type-tag);
+    font-weight: 300;
+    letter-spacing: var(--track-tag);
+    text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+<div class="deck" data-title="一只茶杯盛人间">
+
+<!-- 1. 封面 -->
+<section class="frame cover" data-title="封面" data-state="active">
+    <div class="stage">
+        <div class="cover-tag unfold tag">▽  The Book of Tea · 1906</div>
+        <div class="cover-core">
+            <h1 class="cover-title unfold">一只茶<span class="accent-tea">杯</span>盛人间</h1>
+            <p class="cover-sub unfold">
+                冈仓天心《茶之书》节选 · 茶之哲学四章
+                <span class="latin">Selected Readings from Okakura Kakuzō's<br>The Book of Tea</span>
+            </p>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>cover</span><span>01 / 18</span></div>
+</section>
+
+<!-- 2. 引语扉 -->
+<section class="frame epigraph" data-title="引语扉">
+    <div class="stage">
+        <p class="epigraph-en unfold latin">
+            An empty vessel<br>
+            can hold anything.
+        </p>
+        <p class="epigraph-cn unfold">
+            空的容器，<br>
+            能容纳一切。
+        </p>
+        <div class="epigraph-attr unfold">Kenya Hara · Designing Design</div>
+    </div>
+    <div class="runner runner--bottom"><span>epigraph</span><span>02 / 18</span></div>
+</section>
+
+<!-- 3. PART 01 章节扉 -->
+<section class="frame chapter" data-title="PART 01 茶的进化">
+    <div class="stage">
+        <div class="chapter-num unfold">Part · I</div>
+        <h2 class="chapter-title unfold">茶的进化</h2>
+        <div class="chapter-en unfold latin">The Cup of Humanity</div>
+        <p class="chapter-lead unfold">
+            茶最初是药，后是饮，再入诗，<br>
+            终成一种美学的宗教。
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>part i</span><span>03 / 18</span></div>
+</section>
+
+<!-- 4. 茶的演化时间轴 -->
+<section class="frame evolution" data-title="茶的演化">
+    <div class="stage">
+        <div class="section-label unfold">// EVOLUTION OF TEA</div>
+        <h2 class="section-lede unfold">
+            从药到宗教，<br>
+            茶走了一千年。
+        </h2>
+        <div class="timeline">
+            <div class="timeline-node unfold">
+                <div class="timeline-era">stage 01</div>
+                <div class="timeline-name">药</div>
+                <div class="timeline-note">茶最初作为药物出现于古代中国。</div>
+            </div>
+            <div class="timeline-node unfold">
+                <div class="timeline-era">stage 02</div>
+                <div class="timeline-name">饮</div>
+                <div class="timeline-note">逐渐演化为一种日常饮品。</div>
+            </div>
+            <div class="timeline-node unfold">
+                <div class="timeline-era">stage 03 · 8c</div>
+                <div class="timeline-name">诗</div>
+                <div class="timeline-note">唐代进入诗的领域，成为文雅的消遣。</div>
+            </div>
+            <div class="timeline-node unfold">
+                <div class="timeline-era">stage 04 · 15c</div>
+                <div class="timeline-name">道</div>
+                <div class="timeline-note">日本将其升华为一种美学的宗教——茶道。</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter i</span><span>04 / 18</span></div>
+</section>
+
+<!-- 5. Teaism 中英对照 -->
+<section class="frame bilingual" data-title="Teaism 定义">
+    <div class="stage">
+        <div class="section-label unfold">// TEAISM</div>
+        <h2 class="section-lede unfold">
+            茶道是美的礼赞。
+        </h2>
+        <div class="bilingual-grid">
+            <div class="bilingual-col unfold">
+                <div class="bilingual-col-label latin">en · original</div>
+                <p class="bilingual-en latin">
+                    Teaism is a cult founded on the adoration of the beautiful among the sordid facts of everyday existence. It inculcates purity and harmony, the mystery of mutual charity, the romanticism of the social order.
+                </p>
+            </div>
+            <div class="bilingual-col unfold">
+                <div class="bilingual-col-label latin">cn · translation</div>
+                <p class="bilingual-cn">
+                    茶道是一种崇拜，建立在对日常生活中污浊事实之间的美的礼赞之上。<br><br>它教人以纯净与和谐，教人理解相互慈悲的奥秘，教人体味社会秩序中的浪漫。
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter i</span><span>05 / 18</span></div>
+</section>
+
+<!-- 6. 金句"对不完美的崇拜" -->
+<section class="frame aphorism" data-title="不完美的崇拜">
+    <div class="stage">
+        <div class="aphorism-mark unfold">— epigraph i</div>
+        <p class="aphorism-cn unfold">
+            它是对<span class="accent-tea">「不完美」</span>的崇拜。
+        </p>
+        <p class="aphorism-en unfold latin">
+            It is essentially a worship of the Imperfect — a tender attempt to accomplish something possible in this impossible thing we know as life.
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>chapter i</span><span>06 / 18</span></div>
+</section>
+
+<!-- 7. PART 02 章节扉 -->
+<section class="frame chapter" data-title="PART 02 数寄屋">
+    <div class="stage">
+        <div class="chapter-num unfold">Part · II</div>
+        <h2 class="chapter-title unfold">数寄屋</h2>
+        <div class="chapter-en unfold latin">The Tea-Room</div>
+        <p class="chapter-lead unfold">
+            草庵之简素，<br>
+            是从外世烦扰退避的圣所。
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>part ii</span><span>07 / 18</span></div>
+</section>
+
+<!-- 8. 草庵：贫乏是有意 -->
+<section class="frame epigraph" data-title="贫乏是有意">
+    <div class="stage">
+        <p class="epigraph-en unfold latin">
+            This seeming poverty of materials is intentional.
+        </p>
+        <p class="epigraph-cn unfold">
+            木与竹的「贫乏」，<br>正是有意为之。
+        </p>
+        <div class="epigraph-attr unfold">Sukiya · The Abode of Fancy</div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter ii</span><span>08 / 18</span></div>
+</section>
+
+<!-- 9. Sukiya 三义 -->
+<section class="frame trinity" data-title="Sukiya 三义">
+    <div class="stage">
+        <div class="section-label unfold">// SUKIYA · THREE MEANINGS</div>
+        <h2 class="section-lede unfold">
+            数寄屋，同时是三种居所。
+        </h2>
+        <div class="trinity-grid">
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">空想</div>
+                <div class="trinity-en latin">The Abode<br>of Fancy</div>
+                <div class="trinity-note">为安放一缕诗意而建的短暂结构。</div>
+            </div>
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">空虚</div>
+                <div class="trinity-en latin">The Abode<br>of Vacancy</div>
+                <div class="trinity-note">室内无任何装饰，除非为一时的美感临时陈设。</div>
+            </div>
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">不对称</div>
+                <div class="trinity-en latin">The Abode of<br>the Unsymmetrical</div>
+                <div class="trinity-note">献给对「不完美」的崇拜，故意留下未完成。</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter ii</span><span>09 / 18</span></div>
+</section>
+
+<!-- 10. 金句"故意留下未完成" -->
+<section class="frame aphorism" data-title="未完成">
+    <div class="stage">
+        <div class="aphorism-mark unfold">— epigraph ii</div>
+        <p class="aphorism-cn unfold">
+            故意留下<span class="accent-tea">未完成</span>，<br>
+            让想象将其补全。
+        </p>
+        <p class="aphorism-en unfold latin">
+            Purposely leaving something unfinished for the play of the imagination to complete.
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>chapter ii</span><span>10 / 18</span></div>
+</section>
+
+<!-- 11. PART 03 章节扉 -->
+<section class="frame chapter" data-title="PART 03 三派之时代魂">
+    <div class="stage">
+        <div class="chapter-num unfold">Part · III</div>
+        <h2 class="chapter-title unfold">三派之时代魂</h2>
+        <div class="chapter-en unfold latin">Schools of Tea</div>
+        <p class="chapter-lead unfold">
+            煮 · 打 · 泡，<br>
+            三种品茶方式，标志着<br>
+            三个时代的情感冲动。
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>part iii</span><span>11 / 18</span></div>
+</section>
+
+<!-- 12. 三朝对照 -->
+<section class="frame schools" data-title="三朝对照">
+    <div class="stage">
+        <div class="section-label unfold">// THREE DYNASTIES</div>
+        <h2 class="section-lede unfold">
+            一朝一味，一味一时代。
+        </h2>
+        <div class="schools-grid">
+            <div class="school unfold">
+                <div class="school-era">唐</div>
+                <div class="school-temper latin">classic</div>
+                <div class="school-method">煮饼茶</div>
+                <div class="school-note">唐为古典。茶叶制为饼茶，煮以饮之。</div>
+            </div>
+            <div class="school unfold">
+                <div class="school-era">宋</div>
+                <div class="school-temper latin">romantic</div>
+                <div class="school-method">打抹茶</div>
+                <div class="school-note">宋为浪漫。茶叶碾末，以茶筅击拂之。</div>
+            </div>
+            <div class="school unfold">
+                <div class="school-era">明</div>
+                <div class="school-temper latin">realist</div>
+                <div class="school-method">泡散茶</div>
+                <div class="school-note">明为写实。叶茶散散，沸水冲之。</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter iii</span><span>12 / 18</span></div>
+</section>
+
+<!-- 13. 陆羽《茶经》 -->
+<section class="frame footnote" data-title="陆羽茶经">
+    <div class="stage">
+        <div class="section-label unfold">// CHA-KING · LU WU · 8C</div>
+        <h2 class="footnote-anchor unfold">
+            茶之圣典，<br>
+            三卷十章。
+        </h2>
+        <p class="footnote-body unfold">
+            陆羽于八世纪中叶撰《茶经》。<br>
+            书中论及茶树之性、采叶之器、择叶之法、烹煮之道。
+        </p>
+        <div class="footnote-toc unfold">
+            <div class="footnote-toc-item">
+                <span class="footnote-toc-num">vol i</span>
+                <span>茶之源 · 茶之具 · 茶之造</span>
+            </div>
+            <div class="footnote-toc-item">
+                <span class="footnote-toc-num">vol ii</span>
+                <span>茶之器 · 茶之煮 · 茶之饮</span>
+            </div>
+            <div class="footnote-toc-item">
+                <span class="footnote-toc-num">vol iii</span>
+                <span>茶之事 · 茶之出 · 茶之略 · 茶之图</span>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter iii</span><span>13 / 18</span></div>
+</section>
+
+<!-- 14. 足利义政与体系化 -->
+<section class="frame epigraph" data-title="茶道体系化">
+    <div class="stage">
+        <p class="epigraph-en unfold latin">
+            Teaism became more than an idealization of the form of drinking — it is a religion of the art of life.
+        </p>
+        <p class="epigraph-cn unfold">
+            十五世纪后半叶，足利义政将军庇护之下，<br>
+            茶道终成体系——一种生活艺术的宗教。
+        </p>
+        <div class="epigraph-attr unfold">Ashikaga Yoshimasa · 15c</div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter iii</span><span>14 / 18</span></div>
+</section>
+
+<!-- 15. PART 04 章节扉 -->
+<section class="frame chapter" data-title="PART 04 一味同心">
+    <div class="stage">
+        <div class="chapter-num unfold">Part · IV</div>
+        <h2 class="chapter-title unfold">一味同心</h2>
+        <div class="chapter-en unfold latin">Coda · The Cup of Humanity</div>
+        <p class="chapter-lead unfold">
+            能与万物之尊严合一者，<br>
+            有资格领受这一只人间之器。
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>part iv</span><span>15 / 18</span></div>
+</section>
+
+<!-- 16. 三圣寂静 -->
+<section class="frame trinity" data-title="三圣寂静">
+    <div class="stage">
+        <div class="section-label unfold">// THREE SILENCES</div>
+        <h2 class="section-lede unfold">
+            能领会三种寂静者，<br>
+            可以入。
+        </h2>
+        <div class="trinity-grid">
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">自然</div>
+                <div class="trinity-en latin">The unspoken<br>eloquence<br>of Nature</div>
+                <div class="trinity-note">无声的雄辩。</div>
+            </div>
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">艺术</div>
+                <div class="trinity-en latin">The spotless<br>silence<br>of Art</div>
+                <div class="trinity-note">圣洁的寂静。</div>
+            </div>
+            <div class="trinity-card unfold">
+                <div class="trinity-glyph">诗</div>
+                <div class="trinity-en latin">The limpid<br>depth<br>of Poetry</div>
+                <div class="trinity-note">澄澈的深邃。</div>
+            </div>
+        </div>
+    </div>
+    <div class="runner runner--bottom"><span>chapter iv</span><span>16 / 18</span></div>
+</section>
+
+<!-- 17. 金句 The kettle sings -->
+<section class="frame aphorism" data-title="The kettle sings">
+    <div class="stage">
+        <div class="aphorism-mark unfold">— epigraph iii</div>
+        <p class="aphorism-cn unfold">
+            茶已备妥。<br>
+            主人候之。<br>
+            <span class="accent-tea">釜上汤沸有声。</span>
+        </p>
+        <p class="aphorism-en unfold latin">
+            The tea is ready. The host awaits. The kettle sings.
+        </p>
+    </div>
+    <div class="runner runner--bottom"><span>chapter iv</span><span>17 / 18</span></div>
+</section>
+
+<!-- 18. 终章 「请入」 -->
+<section class="frame coda" data-title="请入">
+    <div class="stage">
+        <div class="coda-pre unfold">end · the book of tea · coda</div>
+        <h1 class="coda-cn unfold">请<span class="accent-tea">入</span>。</h1>
+        <p class="coda-en unfold latin">Enter.</p>
+        <div class="coda-sign unfold">a longtext-to-slides demo · hara</div>
+    </div>
+    <div class="runner runner--bottom"><span>end</span><span>18 / 18</span></div>
+</section>
+
+</div>
+</div>
+
+<nav class="rail" aria-label="frame navigation"></nav>
+<div class="hotkey-hint">←  /  →  ·  space  ·  click  ·  f</div>
+
+<script>
+(function () {
+    'use strict';
+    const DECK_W = 1280;
+    const DECK_H = 720;
+    const STACK_THRESHOLD = 640;
+
+    function init() {
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        const frames = Array.from(deck.querySelectorAll('.frame'));
+        if (frames.length === 0) return;
+
+        const rail = document.querySelector('.rail');
+        let cursor = 0;
+        let stackMode = false;
+
+        function fit() {
+            const w = window.innerWidth, h = window.innerHeight;
+            if (w < STACK_THRESHOLD) {
+                if (!stackMode) {
+                    document.body.classList.add('deck-mode--stack');
+                    deck.classList.add('deck-mode--stack');
+                    stackMode = true;
+                }
+                deck.style.setProperty('--fit-scale', 1);
+                return;
+            } else if (stackMode) {
+                document.body.classList.remove('deck-mode--stack');
+                deck.classList.remove('deck-mode--stack');
+                stackMode = false;
+            }
+            const scale = Math.min(w / DECK_W, h / DECK_H);
+            deck.style.setProperty('--fit-scale', scale);
+        }
+
+        function applyStates() {
+            frames.forEach((f, i) => {
+                if (i < cursor) f.dataset.state = 'past';
+                else if (i === cursor) f.dataset.state = 'active';
+                else f.dataset.state = 'next';
+            });
+            if (rail) Array.from(rail.children).forEach((pip, i) => pip.setAttribute('aria-current', i === cursor ? 'true' : 'false'));
+            history.replaceState(null, '', `#frame-${cursor + 1}`);
+        }
+        function goto(n) { cursor = Math.max(0, Math.min(frames.length - 1, n)); applyStates(); }
+        function next() { goto(cursor + 1); }
+        function prev() { goto(cursor - 1); }
+
+        if (rail) {
+            rail.innerHTML = '';
+            frames.forEach((f, i) => {
+                const pip = document.createElement('button');
+                pip.className = 'rail-pip'; pip.type = 'button';
+                pip.title = f.dataset.title || `Frame ${i + 1}`;
+                pip.addEventListener('click', () => goto(i));
+                rail.appendChild(pip);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.matches('input, textarea, [contenteditable]')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); next(); }
+            else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); prev(); }
+            else if (k === 'Home') { e.preventDefault(); goto(0); }
+            else if (k === 'End') { e.preventDefault(); goto(frames.length - 1); }
+            else if (k === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else document.documentElement.requestFullscreen?.();
+            }
+        });
+
+        let wheelLock = false;
+        window.addEventListener('wheel', (e) => {
+            if (stackMode || wheelLock || Math.abs(e.deltaY) < 30) return;
+            wheelLock = true;
+            if (e.deltaY > 0) next(); else prev();
+            setTimeout(() => { wheelLock = false; }, 600);
+        }, { passive: true });
+
+        deck.addEventListener('click', (e) => {
+            if (stackMode) return;
+            if (e.target.closest('a, button, input, textarea, .rail, .no-tap-nav')) return;
+            const rect = deck.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x > 0.66) next();
+            else if (x < 0.34) prev();
+        });
+
+        function readHash() {
+            const m = /^#frame-(\d+)$/.exec(location.hash);
+            if (m) goto(parseInt(m[1], 10) - 1);
+        }
+        window.addEventListener('hashchange', readHash);
+        window.addEventListener('resize', fit, { passive: true });
+        fit(); readHash(); applyStates();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>
